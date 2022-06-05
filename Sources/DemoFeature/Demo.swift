@@ -160,11 +160,12 @@ public let demoReducer = Reducer<DemoState, DemoAction, DemoEnvironment>.combine
       return .none
 
     case .fullVersionButtonTapped:
-      return environment.applicationClient.open(
-        ServerConfig().appStoreUrl,
-        [:]
-      )
-      .fireAndForget()
+      return .fireAndForget {
+        _ = await environment.applicationClient.open(
+          ServerConfig().appStoreUrl,
+          [:]
+        )
+      }
 
     case .game(.gameOver(.submitGameResponse(.success))):
       state.appStoreOverlayIsPresented = true

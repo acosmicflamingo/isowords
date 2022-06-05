@@ -47,7 +47,9 @@ class GameOverFeatureIntegrationTests: XCTestCase {
     environment.database.playedGamesCount = { _ in .init(value: 0) }
     environment.mainRunLoop = .immediate
     environment.serverConfig.config = { .init() }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(

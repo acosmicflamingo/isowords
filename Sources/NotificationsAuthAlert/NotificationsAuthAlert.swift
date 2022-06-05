@@ -54,14 +54,12 @@ public let notificationsAuthAlertReducer = Reducer<
 
   case .turnOnNotificationsButtonTapped:
     return .run { send in
-      do {
-        guard try await environment.userNotifications.requestAuthorization([.alert, .sound])
-        else { return }
+      if (try? await environment.userNotifications.requestAuthorization([.alert, .sound])) == true {
         await registerForRemoteNotifications(
           remoteNotifications: environment.remoteNotifications,
           userNotifications: environment.userNotifications
         )
-      } catch {}
+      }
 
       let settings = await environment.userNotifications.getNotificationSettings()
       await send(.delegate(.didChooseNotificationSettings(settings)), animation: .default)

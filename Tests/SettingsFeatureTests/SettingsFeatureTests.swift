@@ -8,6 +8,7 @@ import XCTest
 
 @testable import SettingsFeature
 
+@MainActor
 class SettingsFeatureTests: XCTestCase {
   var defaultEnvironment: SettingsEnvironment {
     var environment = SettingsEnvironment.failing
@@ -53,8 +54,8 @@ class SettingsFeatureTests: XCTestCase {
 
   // MARK: - Notifications
 
-  func testEnableNotifications_NotDetermined_GrantAuthorization() {
-    var didRegisterForRemoteNotifications = false
+  func testEnableNotifications_NotDetermined_GrantAuthorization() async {
+    let didRegisterForRemoteNotifications = SendableState(false)
 
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
@@ -63,14 +64,12 @@ class SettingsFeatureTests: XCTestCase {
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .notDetermined)
-    )
-    environment.userNotifications.requestAuthorization = { _ in .init(value: true) }
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
+    environment.userNotifications.requestAuthorization = { _ in true }
     environment.remoteNotifications.register = {
-      .fireAndForget {
-        didRegisterForRemoteNotifications = true
-      }
+      await didRegisterForRemoteNotifications.set(true)
     }
 
     let store = TestStore(
@@ -85,7 +84,7 @@ class SettingsFeatureTests: XCTestCase {
       $0.fullGamePurchasedAt = .mock
     }
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))) {
       $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
     }
 
@@ -93,14 +92,15 @@ class SettingsFeatureTests: XCTestCase {
       $0.enableNotifications = true
     }
 
-    store.receive(.userNotificationAuthorizationResponse(.success(true)))
+    await store.receive(.userNotificationAuthorizationResponse(.success(true)))
 
-    XCTAssert(didRegisterForRemoteNotifications)
+    let didRegister = await didRegisterForRemoteNotifications.value
+    XCTAssert(didRegister)
 
     store.send(.onDismiss)
   }
 
-  func testEnableNotifications_NotDetermined_DenyAuthorization() {
+  func testEnableNotifications_NotDetermined_DenyAuthorization() async {
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
@@ -108,10 +108,10 @@ class SettingsFeatureTests: XCTestCase {
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .notDetermined)
-    )
-    environment.userNotifications.requestAuthorization = { _ in .init(value: false) }
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
+    environment.userNotifications.requestAuthorization = { _ in false }
 
     let store = TestStore(
       initialState: SettingsState(),
@@ -125,7 +125,7 @@ class SettingsFeatureTests: XCTestCase {
       $0.fullGamePurchasedAt = .mock
     }
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))) {
       $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
     }
 
@@ -133,25 +133,25 @@ class SettingsFeatureTests: XCTestCase {
       $0.enableNotifications = true
     }
 
-    store.receive(.userNotificationAuthorizationResponse(.success(false))) {
+    await store.receive(.userNotificationAuthorizationResponse(.success(false))) {
       $0.enableNotifications = false
     }
 
     store.send(.onDismiss)
   }
 
-  func testNotifications_PreviouslyGranted() {
+  func testNotifications_PreviouslyGranted() async {
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
     environment.fileClient.save = { _, _ in .none }
     environment.mainQueue = .immediate
-    environment.remoteNotifications.register = { .none }
+    environment.remoteNotifications.register = {}
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .authorized)
-    )
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .authorized)
+    }
 
     let store = TestStore(
       initialState: SettingsState(),
@@ -165,7 +165,7 @@ class SettingsFeatureTests: XCTestCase {
       $0.fullGamePurchasedAt = .mock
     }
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
       $0.enableNotifications = true
       $0.userNotificationSettings = .init(authorizationStatus: .authorized)
     }
@@ -177,7 +177,7 @@ class SettingsFeatureTests: XCTestCase {
     store.send(.onDismiss)
   }
 
-  func testNotifications_PreviouslyDenied() {
+  func testNotifications_PreviouslyDenied() async {
     var openedUrl: URL!
 
     var environment = self.defaultEnvironment
@@ -185,16 +185,16 @@ class SettingsFeatureTests: XCTestCase {
     environment.applicationClient.openSettingsURLString = { "settings:isowords//isowords/settings" }
     environment.applicationClient.open = { url, _ in
       openedUrl = url
-      return .init(value: true)
+      return true
     }
     environment.backgroundQueue = .immediate
     environment.fileClient.save = { _, _ in .none }
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .denied)
-    )
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .denied)
+    }
 
     let store = TestStore(
       initialState: SettingsState(),
@@ -208,7 +208,7 @@ class SettingsFeatureTests: XCTestCase {
       $0.fullGamePurchasedAt = .mock
     }
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .denied))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .denied))) {
       $0.userNotificationSettings = .init(authorizationStatus: .denied)
     }
 
@@ -216,7 +216,7 @@ class SettingsFeatureTests: XCTestCase {
       $0.alert = .userNotificationAuthorizationDenied
     }
 
-    store.send(.openSettingButtonTapped)
+    await store.send(.openSettingButtonTapped).finish()
 
     XCTAssertNoDifference(openedUrl, URL(string: "settings:isowords//isowords/settings")!)
 
@@ -227,7 +227,7 @@ class SettingsFeatureTests: XCTestCase {
     store.send(.onDismiss)
   }
 
-  func testNotifications_DebounceRemoteSettingsUpdates() {
+  func testNotifications_DebounceRemoteSettingsUpdates() async {
     let mainQueue = DispatchQueue.test
 
     var environment = self.defaultEnvironment
@@ -248,12 +248,12 @@ class SettingsFeatureTests: XCTestCase {
     environment.backgroundQueue = .immediate
     environment.fileClient.save = { _, _ in .none }
     environment.mainQueue = mainQueue.eraseToAnyScheduler()
-    environment.remoteNotifications.register = { .none }
+    environment.remoteNotifications.register = {}
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .authorized)
-    )
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .authorized)
+    }
 
     let store = TestStore(
       initialState: SettingsState(sendDailyChallengeReminder: false),
@@ -267,9 +267,9 @@ class SettingsFeatureTests: XCTestCase {
       $0.fullGamePurchasedAt = .mock
     }
 
-    mainQueue.advance()
+    await mainQueue.advance()
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
       $0.enableNotifications = true
       $0.userNotificationSettings = .init(authorizationStatus: .authorized)
     }
@@ -277,13 +277,13 @@ class SettingsFeatureTests: XCTestCase {
     store.send(.set(\.$sendDailyChallengeReminder, true)) {
       $0.sendDailyChallengeReminder = true
     }
-    mainQueue.advance(by: 0.5)
+    await mainQueue.advance(by: 0.5)
 
     store.send(.set(\.$sendDailyChallengeSummary, true))
-    mainQueue.advance(by: 0.5)
-    mainQueue.advance(by: 0.5)
+    await mainQueue.advance(by: 0.5)
+    await mainQueue.advance(by: 0.5)
 
-    store.receive(.currentPlayerRefreshed(.success(.blobWithPurchase)))
+    await store.receive(.currentPlayerRefreshed(.success(.blobWithPurchase)))
 
     store.send(.onDismiss)
   }
@@ -388,7 +388,7 @@ class SettingsFeatureTests: XCTestCase {
     XCTAssertNoDifference(overriddenIconName, "icon-2")
   }
 
-  func testUnsetAppIcon() {
+  func testUnsetAppIcon() async {
     var overriddenIconName: String?
 
     var environment = self.defaultEnvironment
@@ -403,7 +403,9 @@ class SettingsFeatureTests: XCTestCase {
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: SettingsState(),
@@ -416,6 +418,12 @@ class SettingsFeatureTests: XCTestCase {
       $0.developer.currentBaseUrl = .localhost
       $0.fullGamePurchasedAt = .mock
       $0.userSettings.appIcon = .icon2
+    }
+
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    ) {
+      $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
     }
 
     store.send(.set(\.$userSettings.appIcon, nil)) {

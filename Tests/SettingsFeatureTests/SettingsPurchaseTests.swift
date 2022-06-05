@@ -7,6 +7,7 @@ import XCTest
 @testable import ServerConfig
 @testable import SettingsFeature
 
+@MainActor
 class SettingsPurchaseTests: XCTestCase {
   var defaultEnvironment: SettingsEnvironment {
     var environment = SettingsEnvironment.failing
@@ -16,12 +17,14 @@ class SettingsPurchaseTests: XCTestCase {
     environment.mainQueue = .immediate
     environment.backgroundQueue = .immediate
     environment.fileClient.save = { _, _ in .none }
-    environment.userNotifications.getNotificationSettings = .none
-    environment.userNotifications.requestAuthorization = { _ in .init(value: false) }
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
+    environment.userNotifications.requestAuthorization = { _ in false }
     return environment
   }
 
-  func testUpgrade_HappyPath() throws {
+  func testUpgrade_HappyPath() async throws {
     var didAddPaymentProductIdentifier: String? = nil
     let storeKitObserver = PassthroughSubject<
       StoreKitClient.PaymentTransactionObserverEvent, Never
@@ -53,11 +56,17 @@ class SettingsPurchaseTests: XCTestCase {
       $0.buildNumber = 42
       $0.developer.currentBaseUrl = .localhost
     }
-    store.receive(
+    await store.receive(
       .productsResponse(.success(.init(invalidProductIdentifiers: [], products: [.fullGame])))
     ) {
       $0.fullGameProduct = .success(.fullGame)
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    ) {
+      $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
+    }
+
     store.send(.tappedProduct(.fullGame)) {
       $0.isPurchasing = true
     }
@@ -66,18 +75,18 @@ class SettingsPurchaseTests: XCTestCase {
     storeKitObserver.send(.updatedTransactions([.purchased]))
     storeKitObserver.send(.removedTransactions([.purchased]))
 
-    store.receive(SettingsAction.paymentTransaction(.updatedTransactions([.purchasing])))
-    store.receive(SettingsAction.paymentTransaction(.updatedTransactions([.purchased])))
-    store.receive(SettingsAction.paymentTransaction(.removedTransactions([.purchased]))) {
+    await store.receive(SettingsAction.paymentTransaction(.updatedTransactions([.purchasing])))
+    await store.receive(SettingsAction.paymentTransaction(.updatedTransactions([.purchased])))
+    await store.receive(SettingsAction.paymentTransaction(.removedTransactions([.purchased]))) {
       $0.isPurchasing = false
     }
-    store.receive(SettingsAction.currentPlayerRefreshed(.success(.blobWithPurchase))) {
+    await store.receive(SettingsAction.currentPlayerRefreshed(.success(.blobWithPurchase))) {
       $0.fullGamePurchasedAt = .mock
     }
     store.send(.onDismiss)
   }
 
-  func testRestore_HappyPath() throws {
+  func testRestore_HappyPath() async throws {
     var didRestoreCompletedTransactions = false
     let storeKitObserver = PassthroughSubject<
       StoreKitClient.PaymentTransactionObserverEvent, Never
@@ -109,11 +118,17 @@ class SettingsPurchaseTests: XCTestCase {
       $0.buildNumber = 42
       $0.developer.currentBaseUrl = .localhost
     }
-    store.receive(
+    await store.receive(
       .productsResponse(.success(.init(invalidProductIdentifiers: [], products: [.fullGame])))
     ) {
       $0.fullGameProduct = .success(.fullGame)
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    ) {
+      $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
+    }
+
     store.send(.restoreButtonTapped) {
       $0.isRestoring = true
     }
@@ -123,17 +138,19 @@ class SettingsPurchaseTests: XCTestCase {
     storeKitObserver.send(.removedTransactions([.restored]))
     storeKitObserver.send(.restoreCompletedTransactionsFinished(transactions: [.restored]))
 
-    store.receive(SettingsAction.paymentTransaction(.updatedTransactions([.restored])))
-    store.receive(SettingsAction.paymentTransaction(.removedTransactions([.restored])))
-    store.receive(SettingsAction.currentPlayerRefreshed(.success(.blobWithPurchase))) {
+    await store.receive(.paymentTransaction(.updatedTransactions([.restored])))
+    await store.receive(.paymentTransaction(.removedTransactions([.restored])))
+    await store.receive(.currentPlayerRefreshed(.success(.blobWithPurchase))) {
       $0.isRestoring = false
       $0.fullGamePurchasedAt = .mock
     }
-    store.receive(SettingsAction.paymentTransaction(.restoreCompletedTransactionsFinished(transactions: [.restored])))
+    await store.receive(
+      .paymentTransaction(.restoreCompletedTransactionsFinished(transactions: [.restored]))
+    )
     store.send(.onDismiss)
   }
 
-  func testRestore_NoPurchasesPath() throws {
+  func testRestore_NoPurchasesPath() async throws {
     var didRestoreCompletedTransactions = false
     let storeKitObserver = PassthroughSubject<
       StoreKitClient.PaymentTransactionObserverEvent, Never
@@ -165,11 +182,17 @@ class SettingsPurchaseTests: XCTestCase {
       $0.buildNumber = 42
       $0.developer.currentBaseUrl = .localhost
     }
-    store.receive(
+    await store.receive(
       .productsResponse(.success(.init(invalidProductIdentifiers: [], products: [.fullGame])))
     ) {
       $0.fullGameProduct = .success(.fullGame)
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    ) {
+      $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
+    }
+
     store.send(.restoreButtonTapped) {
       $0.isRestoring = true
     }
@@ -177,7 +200,7 @@ class SettingsPurchaseTests: XCTestCase {
     XCTAssertNoDifference(didRestoreCompletedTransactions, true)
     storeKitObserver.send(.restoreCompletedTransactionsFinished(transactions: []))
 
-    store.receive(SettingsAction.paymentTransaction(.restoreCompletedTransactionsFinished(transactions: []))) {
+    await store.receive(SettingsAction.paymentTransaction(.restoreCompletedTransactionsFinished(transactions: []))) {
       $0.isRestoring = false
       $0.alert = .noRestoredPurchases
     }
@@ -185,7 +208,7 @@ class SettingsPurchaseTests: XCTestCase {
     store.send(.onDismiss)
   }
 
-  func testRestore_ErrorPath() throws {
+  func testRestore_ErrorPath() async throws {
     var didRestoreCompletedTransactions = false
     let storeKitObserver = PassthroughSubject<
       StoreKitClient.PaymentTransactionObserverEvent, Never
@@ -217,11 +240,17 @@ class SettingsPurchaseTests: XCTestCase {
       $0.buildNumber = 42
       $0.developer.currentBaseUrl = .localhost
     }
-    store.receive(
+    await store.receive(
       .productsResponse(.success(.init(invalidProductIdentifiers: [], products: [.fullGame])))
     ) {
       $0.fullGameProduct = .success(.fullGame)
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    ) {
+      $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
+    }
+
     store.send(.restoreButtonTapped) {
       $0.isRestoring = true
     }
@@ -231,7 +260,9 @@ class SettingsPurchaseTests: XCTestCase {
     let restoreCompletedTransactionsError = NSError(domain: "", code: 1)
     storeKitObserver.send(.restoreCompletedTransactionsFailed(restoreCompletedTransactionsError))
 
-    store.receive(SettingsAction.paymentTransaction(.restoreCompletedTransactionsFailed(restoreCompletedTransactionsError))) {
+    await store.receive(
+      .paymentTransaction(.restoreCompletedTransactionsFailed(restoreCompletedTransactionsError))
+    ) {
       $0.isRestoring = false
       $0.alert = .restoredPurchasesFailed
     }

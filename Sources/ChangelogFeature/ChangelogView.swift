@@ -118,11 +118,12 @@ public let changelogReducer = Reducer<
       .catchToEffect(ChangelogAction.changelogResponse)
 
     case .updateButtonTapped:
-      return environment.applicationClient.open(
-        environment.serverConfig.config().appStoreUrl.absoluteURL,
-        [:]
-      )
-      .fireAndForget()
+      return .fireAndForget {
+        _ = await environment.applicationClient.open(
+          environment.serverConfig.config().appStoreUrl.absoluteURL,
+          [:]
+        )
+      }
     }
   }
 )

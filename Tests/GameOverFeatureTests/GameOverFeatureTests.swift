@@ -9,10 +9,11 @@ import XCTest
 @testable import LocalDatabaseClient
 @testable import UserDefaultsClient
 
+@MainActor
 class GameOverFeatureTests: XCTestCase {
   let mainRunLoop = RunLoop.test
 
-  func testSubmitLeaderboardScore() throws {
+  func testSubmitLeaderboardScore() async throws {
     var environment = GameOverEnvironment.failing
     environment.audioPlayer = .noop
     environment.apiClient.currentPlayer = { .init(appleReceipt: .mock, player: .blob) }
@@ -38,7 +39,9 @@ class GameOverFeatureTests: XCTestCase {
     environment.database.playedGamesCount = { _ in .init(value: 10) }
     environment.mainRunLoop = .immediate
     environment.serverConfig.config = { .init() }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(
@@ -58,10 +61,10 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    store.receive(.delayedOnAppear) {
+    await store.receive(.delayedOnAppear) {
       $0.isViewEnabled = true
     }
-    store.receive(
+    await store.receive(
       .submitGameResponse(
         .success(
           .solo(
@@ -80,9 +83,12 @@ class GameOverFeatureTests: XCTestCase {
         .allTime: .init(outOf: 10000, rank: 100),
       ])
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    )
   }
 
-  func testSubmitDailyChallenge() throws {
+  func testSubmitDailyChallenge() async throws {
     let dailyChallengeResponses = [
       FetchTodaysDailyChallengeResponse(
         dailyChallenge: .init(
@@ -146,7 +152,9 @@ class GameOverFeatureTests: XCTestCase {
     environment.database.playedGamesCount = { _ in .init(value: 10) }
     environment.mainRunLoop = .immediate
     environment.serverConfig.config = { .init() }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(
@@ -166,8 +174,8 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
-    store.receive(
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
+    await store.receive(
       .submitGameResponse(
         .success(
           .dailyChallenge(
@@ -178,14 +186,17 @@ class GameOverFeatureTests: XCTestCase {
     ) {
       $0.summary = .dailyChallenge(.init(outOf: 100, rank: 2, score: 1000, started: true))
     }
-    store.receive(
+    await store.receive(
       .dailyChallengeResponse(.success(dailyChallengeResponses))
     ) {
       $0.dailyChallenges = dailyChallengeResponses
     }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    )
   }
 
-  func testTurnBased_TrackLeaderboards() throws {
+  func testTurnBased_TrackLeaderboards() async throws {
     var environment = GameOverEnvironment.failing
     environment.audioPlayer = .noop
     environment.apiClient.currentPlayer = { .init(appleReceipt: .mock, player: .blob) }
@@ -220,7 +231,9 @@ class GameOverFeatureTests: XCTestCase {
     )
     environment.mainRunLoop = .immediate
     environment.serverConfig.config = { .init() }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(
@@ -241,8 +254,11 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
-    store.receive(.submitGameResponse(.success(.turnBased)))
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
+    await store.receive(.submitGameResponse(.success(.turnBased)))
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    )
   }
 
   func testRequestReviewOnClose() {
@@ -283,7 +299,9 @@ class GameOverFeatureTests: XCTestCase {
         }
       }
     }
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(completedGame: completedGame, isDemo: false, isViewEnabled: true),
@@ -346,7 +364,7 @@ class GameOverFeatureTests: XCTestCase {
     store.receive(.delegate(.close))
   }
 
-  func testShowUpgradeInterstitial() {
+  func testShowUpgradeInterstitial() async {
     var environment = GameOverEnvironment.failing
     environment.audioPlayer = .noop
     environment.apiClient.currentPlayer = { .init(appleReceipt: nil, player: .blob) }
@@ -362,7 +380,9 @@ class GameOverFeatureTests: XCTestCase {
       double: self.mainRunLoop.now.date.timeIntervalSince1970,
       forKey: "last-review-request-timeinterval"
     )
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(
@@ -382,15 +402,18 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    self.mainRunLoop.advance(by: .seconds(1))
-    store.receive(.delayedShowUpgradeInterstitial) {
+    await self.mainRunLoop.advance(by: .seconds(1))
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    )
+    await store.receive(.delayedShowUpgradeInterstitial) {
       $0.upgradeInterstitial = .init()
     }
-    self.mainRunLoop.advance(by: .seconds(1))
-    store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
+    await self.mainRunLoop.advance(by: .seconds(1))
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
   }
 
-  func testSkipUpgradeIfLessThan10GamesPlayed() {
+  func testSkipUpgradeIfLessThan10GamesPlayed() async {
     var environment = GameOverEnvironment.failing
     environment.audioPlayer = .noop
     environment.apiClient.currentPlayer = { .init(appleReceipt: nil, player: .blob) }
@@ -411,7 +434,9 @@ class GameOverFeatureTests: XCTestCase {
       double: self.mainRunLoop.now.date.timeIntervalSince1970,
       forKey: "last-review-request-timeinterval"
     )
-    environment.userNotifications.getNotificationSettings = .none
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .notDetermined)
+    }
 
     let store = TestStore(
       initialState: GameOverState(
@@ -431,6 +456,9 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
+    await store.receive(
+      .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
+    )
   }
 }

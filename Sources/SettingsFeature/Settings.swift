@@ -428,9 +428,10 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
       }
 
     case .leaveUsAReviewButtonTapped:
-      return environment.applicationClient
-        .open(environment.serverConfig.config().appStoreReviewUrl, [:])
-        .fireAndForget()
+      return .fireAndForget {
+        _ = await environment.applicationClient
+          .open(environment.serverConfig.config().appStoreReviewUrl, [:])
+      }
 
     case .onAppear:
       state.fullGamePurchasedAt =
@@ -511,11 +512,11 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
       return .none
 
     case .openSettingButtonTapped:
-      return URL(string: environment.applicationClient.openSettingsURLString())
-        .map {
-          environment.applicationClient.open($0, [:]).fireAndForget()
-        }
-        ?? .none
+      return .fireAndForget {
+        guard let url = URL(string: environment.applicationClient.openSettingsURLString())
+        else { return }
+        _ = await environment.applicationClient.open(url, [:])
+      }
 
     case let .productsResponse(.success(response)):
       state.fullGameProduct =
@@ -532,25 +533,26 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
       return .none
 
     case .reportABugButtonTapped:
-      var components = URLComponents()
-      components.scheme = "mailto"
-      components.path = "support@pointfree.co"
-      components.queryItems = [
-        URLQueryItem(name: "subject", value: "I found a bug in isowords"),
-        URLQueryItem(
-          name: "body",
-          value: """
+      return .fireAndForget {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = "support@pointfree.co"
+        components.queryItems = [
+          URLQueryItem(name: "subject", value: "I found a bug in isowords"),
+          URLQueryItem(
+            name: "body",
+            value: """
 
 
-            ---
-            Build: \(environment.build.number()) (\(environment.build.gitSha()))
-            \(environment.apiClient.currentPlayer()?.player.id.rawValue.uuidString ?? "")
-            """
-        ),
-      ]
+              ---
+              Build: \(environment.build.number()) (\(environment.build.gitSha()))
+              \(environment.apiClient.currentPlayer()?.player.id.rawValue.uuidString ?? "")
+              """
+          ),
+        ]
 
-      return environment.applicationClient.open(components.url!, [:])
-        .fireAndForget()
+        _ = await environment.applicationClient.open(components.url!, [:])
+      }
 
     case .restoreButtonTapped:
       state.isRestoring = true

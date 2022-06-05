@@ -4,10 +4,11 @@ import XCTest
 
 @testable import OnboardingFeature
 
+@MainActor
 class OnboardingFeatureTests: XCTestCase {
   let mainQueue = DispatchQueue.test
 
-  func testBasics_FirstLaunch() {
+  func testBasics_FirstLaunch() async {
     var isFirstLaunchOnboardingKeySet = false
     
     var environment = OnboardingEnvironment.failing
@@ -36,8 +37,8 @@ class OnboardingFeatureTests: XCTestCase {
 
     store.send(.onAppear)
 
-    self.mainQueue.advance(by: .seconds(4))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(4))
+    await store.receive(.delayedNextStep) {
       $0.step = .step2_FindWordsOnCube
     }
 
@@ -93,8 +94,8 @@ class OnboardingFeatureTests: XCTestCase {
     }
 
     // Wait a moment to automatically go to the next step
-    self.mainQueue.advance(by: .seconds(2))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(2))
+    await store.receive(.delayedNextStep) {
       $0.step = .step7_BiggerCube
     }
 
@@ -151,8 +152,8 @@ class OnboardingFeatureTests: XCTestCase {
     }
 
     // Wait a moment to automatically go to the next step
-    self.mainQueue.advance(by: .seconds(2))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(2))
+    await store.receive(.delayedNextStep) {
       $0.step = .step10_CubeDisappear
     }
 
@@ -181,7 +182,7 @@ class OnboardingFeatureTests: XCTestCase {
       $0.game.optimisticallySelectedFace = .init(index: .init(x: .two, y: .one, z: .one), side: .right)
       $0.game.selectedWord.append(.init(index: .init(x: .two, y: .one, z: .one), side: .right))
     }
-    store.send(.game(.tap(.began, .init(index: .init(x: .two, y: .two, z: .one), side: .right)))) {
+    let shakingCubeTask = store.send(.game(.tap(.began, .init(index: .init(x: .two, y: .two, z: .one), side: .right)))) {
       $0.game.cubeStartedShakingAt = environment.mainRunLoop.now.date
       $0.game.optimisticallySelectedFace = .init(index: .init(x: .two, y: .two, z: .one), side: .right)
       $0.game.selectedWord.append(.init(index: .init(x: .two, y: .two, z: .one), side: .right))
@@ -217,8 +218,10 @@ class OnboardingFeatureTests: XCTestCase {
       $0.step = .step13_Congrats
     }
 
-    self.mainQueue.advance(by: .seconds(3))
-    store.receive(.delayedNextStep) {
+    await shakingCubeTask.finish()
+
+    await self.mainQueue.advance(by: .seconds(3))
+    await store.receive(.delayedNextStep) {
       $0.step = .step14_LettersRevealed
     }
 
@@ -271,8 +274,8 @@ class OnboardingFeatureTests: XCTestCase {
       $0.step = .step17_Congrats
     }
 
-    self.mainQueue.advance(by: .seconds(2))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(2))
+    await store.receive(.delayedNextStep) {
       $0.step = .step18_OneLastThing
     }
 
@@ -281,7 +284,7 @@ class OnboardingFeatureTests: XCTestCase {
     }
 
     store.send(.game(.doubleTap(index: .init(x: .two, y: .two, z: .two))))
-    store.receive(.game(.confirmRemoveCube(.init(x: .two, y: .two, z: .two)))) {
+    await store.receive(.game(.confirmRemoveCube(.init(x: .two, y: .two, z: .two)))) {
       $0.game.cubes[.two][.two][.two].wasRemoved = true
       $0.game.moves.append(
         .init(
@@ -295,13 +298,13 @@ class OnboardingFeatureTests: XCTestCase {
       $0.step = .step20_Congrats
     }
 
-    self.mainQueue.advance(by: .seconds(2))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(2))
+    await store.receive(.delayedNextStep) {
       $0.step = .step21_PlayAGameYourself
     }
 
     store.send(.getStartedButtonTapped)
-    store.receive(.delegate(.getStarted))
+    await store.receive(.delegate(.getStarted))
 
     XCTAssertNoDifference(isFirstLaunchOnboardingKeySet, true)
   }

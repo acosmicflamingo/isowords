@@ -5,13 +5,7 @@ import UIKit
 extension UIApplicationClient {
   public static let live = Self(
     alternateIconName: { UIApplication.shared.alternateIconName },
-    open: { url, options in
-      .future { callback in
-        UIApplication.shared.open(url, options: options) { bool in
-          callback(.success(bool))
-        }
-      }
-    },
+    open: { url, options in await UIApplication.shared.open(url, options: options) },
     openSettingsURLString: { UIApplication.openSettingsURLString },
     setAlternateIconName: { iconName in
       .run { subscriber in

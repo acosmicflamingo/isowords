@@ -5,20 +5,21 @@ import XCTest
 @testable import DailyChallengeFeature
 @testable import SharedModels
 
+@MainActor
 class DailyChallengeFeatureTests: XCTestCase {
   let mainQueue = DispatchQueue.test
   let mainRunLoop = RunLoop.test
 
-  func testOnAppear() {
+  func testOnAppear() async {
     var environment = DailyChallengeEnvironment.failing
     environment.apiClient.override(
       route: .dailyChallenge(.today(language: .en)),
       withResponse: .ok([FetchTodaysDailyChallengeResponse.played])
     )
     environment.mainRunLoop = .immediate
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .authorized)
-    )
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .authorized)
+    }
 
     let store = TestStore(
       initialState: .init(),
@@ -28,11 +29,11 @@ class DailyChallengeFeatureTests: XCTestCase {
 
     store.send(.onAppear)
 
-    store.receive(.fetchTodaysDailyChallengeResponse(.success([.played]))) {
+    await store.receive(.fetchTodaysDailyChallengeResponse(.success([.played]))) {
       $0.dailyChallenges = [.played]
     }
 
-    store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
+    await store.receive(.userNotificationSettingsResponse(.init(authorizationStatus: .authorized))) {
       $0.userNotificationSettings = .init(authorizationStatus: .authorized)
     }
   }
@@ -155,20 +156,16 @@ class DailyChallengeFeatureTests: XCTestCase {
     }
   }
 
-  func testNotifications_GrantAccess() {
-    var didRegisterForRemoteNotifications = false
+  func testNotifications_GrantAccess() async {
+    let didRegisterForRemoteNotifications = SendableState(false)
 
     var environment = DailyChallengeEnvironment.failing
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .authorized)
-    )
-    environment.userNotifications.requestAuthorization = { options in
-      .init(value: true)
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .authorized)
     }
+    environment.userNotifications.requestAuthorization = { _ in true }
     environment.remoteNotifications.register = {
-      .fireAndForget {
-        didRegisterForRemoteNotifications = true
-      }
+      await didRegisterForRemoteNotifications.set(true)
     }
     environment.mainRunLoop = .immediate
 
@@ -182,7 +179,7 @@ class DailyChallengeFeatureTests: XCTestCase {
       $0.notificationsAuthAlert = .init()
     }
     store.send(.notificationsAuthAlert(.turnOnNotificationsButtonTapped))
-    store.receive(
+    await store.receive(
       .notificationsAuthAlert(
         .delegate(
           .didChooseNotificationSettings(.init(authorizationStatus: .authorized))
@@ -193,17 +190,16 @@ class DailyChallengeFeatureTests: XCTestCase {
       $0.userNotificationSettings = .init(authorizationStatus: .authorized)
     }
 
-    XCTAssertNoDifference(didRegisterForRemoteNotifications, true)
+    let didRegister = await didRegisterForRemoteNotifications.value
+    XCTAssertNoDifference(didRegister, true)
   }
 
-  func testNotifications_DenyAccess() {
+  func testNotifications_DenyAccess() async {
     var environment = DailyChallengeEnvironment.failing
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .denied)
-    )
-    environment.userNotifications.requestAuthorization = { options in
-      .init(value: false)
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .denied)
     }
+    environment.userNotifications.requestAuthorization = { _ in false }
     environment.mainRunLoop = .immediate
 
     let store = TestStore(
@@ -216,7 +212,7 @@ class DailyChallengeFeatureTests: XCTestCase {
       $0.notificationsAuthAlert = .init()
     }
     store.send(.notificationsAuthAlert(.turnOnNotificationsButtonTapped))
-    store.receive(
+    await store.receive(
       .notificationsAuthAlert(
         .delegate(
           .didChooseNotificationSettings(.init(authorizationStatus: .denied))
