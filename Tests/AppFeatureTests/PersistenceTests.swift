@@ -62,41 +62,44 @@ class PersistenceTests: XCTestCase {
       )
       $0.home.savedGames.unlimited = $0.game.map(InProgressGame.init)
     }
-    store.send(.currentGame(.game(.tap(.began, C)))) {
+    await store.send(.currentGame(.game(.tap(.began, C)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = C
         $0.selectedWord = [C]
       }
     }
+    .finish()
     store.send(.currentGame(.game(.tap(.ended, C)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = nil
       }
     }
-    store.send(.currentGame(.game(.tap(.began, A)))) {
+    await store.send(.currentGame(.game(.tap(.began, A)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = A
         $0.selectedWord = [C, A]
       }
     }
+    .finish()
     store.send(.currentGame(.game(.tap(.ended, A)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = nil
       }
     }
-    store.send(.currentGame(.game(.tap(.began, B)))) {
+    await store.send(.currentGame(.game(.tap(.began, B)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = B
         $0.selectedWord = [C, A, B]
         $0.selectedWordIsValid = true
       }
     }
+    .finish()
     store.send(.currentGame(.game(.tap(.ended, B)))) {
       try XCTUnwrap(&$0.game) {
         $0.optimisticallySelectedFace = nil
       }
     }
-    store.send(.currentGame(.game(.submitButtonTapped(reaction: nil)))) {
+    await store.send(.currentGame(.game(.submitButtonTapped(reaction: nil)))) {
       try XCTUnwrap(&$0.game) {
         $0.moves = [
           .init(
@@ -115,6 +118,7 @@ class PersistenceTests: XCTestCase {
       }
       $0.home.savedGames.unlimited = $0.game.map(InProgressGame.init)
     }
+    .finish()
     store.send(.currentGame(.game(.menuButtonTapped))) {
       try XCTUnwrap(&$0.game) {
         $0.bottomMenu = .init(

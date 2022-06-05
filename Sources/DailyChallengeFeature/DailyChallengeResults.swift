@@ -96,7 +96,7 @@ public let dailyChallengeResultsReducer = Reducer<
         state.history = nil
       }
 
-      struct CancelId: Hashable {}
+      enum CancelId {}
       return environment.apiClient.apiRequest(
         route: .dailyChallenge(
           .results(
@@ -110,7 +110,7 @@ public let dailyChallengeResultsReducer = Reducer<
       )
       .receive(on: environment.mainQueue)
       .catchToEffect(DailyChallengeResultsAction.fetchHistoryResponse)
-      .cancellable(id: CancelId(), cancelInFlight: true)
+      .cancellable(id: CancelId.self, cancelInFlight: true)
     }
   }
 )

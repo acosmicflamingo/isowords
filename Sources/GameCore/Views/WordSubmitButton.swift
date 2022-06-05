@@ -80,8 +80,7 @@ let wordSubmitReducer = Reducer<
   case .delayedSubmitButtonPressed:
     state.wordSubmitButton.areReactionsOpen = true
     return .merge(
-      environment.feedbackGenerator.selectionChanged()
-        .fireAndForget(),
+      .fireAndForget { await environment.feedbackGenerator.selectionChanged() },
 
       environment.audioPlayer.play(.uiSfxEmojiOpen)
         .fireAndForget()
@@ -93,8 +92,7 @@ let wordSubmitReducer = Reducer<
   case let .reactionButtonTapped(reaction):
     state.wordSubmitButton.areReactionsOpen = false
     return .merge(
-      environment.feedbackGenerator.selectionChanged()
-        .fireAndForget(),
+      .fireAndForget { await environment.feedbackGenerator.selectionChanged() },
 
       environment.audioPlayer.play(.uiSfxEmojiSend)
         .fireAndForget(),
@@ -132,8 +130,7 @@ let wordSubmitReducer = Reducer<
       closeSound
         .fireAndForget(),
 
-      environment.feedbackGenerator.selectionChanged()
-        .fireAndForget()
+      .fireAndForget { await environment.feedbackGenerator.selectionChanged() }
     )
 
   case .submitButtonReleased:
