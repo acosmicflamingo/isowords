@@ -45,6 +45,7 @@ class UserNotificationsTests: XCTestCase {
     )
 
     XCTAssertTrue(didCallback)
+
     delegate.send(completion: .finished)
   }
 
@@ -85,6 +86,7 @@ class UserNotificationsTests: XCTestCase {
     )
 
     XCTAssertNoDifference(didCallbackWithOptions, .banner)
+
     delegate.send(completion: .finished)
   }
 }
