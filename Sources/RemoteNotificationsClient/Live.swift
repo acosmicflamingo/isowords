@@ -4,17 +4,9 @@
   @available(iOSApplicationExtension, unavailable)
   extension RemoteNotificationsClient {
     public static let live = Self(
-      isRegistered: { UIApplication.shared.isRegisteredForRemoteNotifications },
-      register: {
-        .fireAndForget {
-          UIApplication.shared.registerForRemoteNotifications()
-        }
-      },
-      unregister: {
-        .fireAndForget {
-          UIApplication.shared.unregisterForRemoteNotifications()
-        }
-      }
+      isRegistered: { await UIApplication.shared.isRegisteredForRemoteNotifications },
+      register: { await UIApplication.shared.registerForRemoteNotifications() },
+      unregister: { await UIApplication.shared.unregisterForRemoteNotifications() }
     )
   }
 #elseif canImport(AppKit)
@@ -22,17 +14,9 @@
 
   extension RemoteNotificationsClient {
     public static let live = Self(
-      isRegistered: { NSApplication.shared.isRegisteredForRemoteNotifications },
-      register: {
-        .fireAndForget {
-          NSApplication.shared.registerForRemoteNotifications()
-        }
-      },
-      unregister: {
-        .fireAndForget {
-          NSApplication.shared.unregisterForRemoteNotifications()
-        }
-      }
+      isRegistered: { await NSApplication.shared.isRegisteredForRemoteNotifications },
+      register: { await NSApplication.shared.registerForRemoteNotifications() },
+      unregister: { await NSApplication.shared.unregisterForRemoteNotifications() }
     )
   }
 #endif

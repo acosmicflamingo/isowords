@@ -3,12 +3,12 @@ import ComposableArchitecture
 import UserNotifications
 
 public struct UserNotificationClient {
-  public var add: (UNNotificationRequest) -> Effect<Void, Error>
+  public var add: @Sendable (UNNotificationRequest) async throws -> Void
   public var delegate: Effect<DelegateEvent, Never>
-  public var getNotificationSettings: Effect<Notification.Settings, Never>
-  public var removeDeliveredNotificationsWithIdentifiers: ([String]) -> Effect<Never, Never>
-  public var removePendingNotificationRequestsWithIdentifiers: ([String]) -> Effect<Never, Never>
-  public var requestAuthorization: (UNAuthorizationOptions) -> Effect<Bool, Error>
+  public var getNotificationSettings: @Sendable () async -> Notification.Settings
+  public var removeDeliveredNotificationsWithIdentifiers: @Sendable ([String]) async -> Void
+  public var removePendingNotificationRequestsWithIdentifiers: @Sendable ([String]) async -> Void
+  public var requestAuthorization: @Sendable (UNAuthorizationOptions) async throws -> Bool
 
   public enum DelegateEvent: Equatable {
     case didReceiveResponse(Notification.Response, completionHandler: () -> Void)

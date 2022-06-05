@@ -320,10 +320,10 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
         .ignoreFailure()
         .eraseToEffect(),
 
-        environment.userNotifications.getNotificationSettings
-          .receive(on: environment.mainRunLoop)
-          .map(GameOverAction.userNotificationSettingsResponse)
-          .eraseToEffect(),
+        .run { send in
+          let settings = await environment.userNotifications.getNotificationSettings()
+          await send(.userNotificationSettingsResponse(settings))
+        },
 
         environment.audioPlayer.loop(.gameOverMusicLoop)
           .fireAndForget(),

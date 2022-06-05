@@ -182,10 +182,11 @@ public let dailyChallengeReducer = Reducer<
         .receive(on: environment.mainRunLoop.animation())
         .catchToEffect(DailyChallengeAction.fetchTodaysDailyChallengeResponse),
 
-        environment.userNotifications.getNotificationSettings
-          .receive(on: environment.mainRunLoop)
-          .map(DailyChallengeAction.userNotificationSettingsResponse)
-          .eraseToEffect()
+        .task {
+          await .userNotificationSettingsResponse(
+            environment.userNotifications.getNotificationSettings()
+          )
+        }
       )
 
     case .notificationButtonTapped:
@@ -513,8 +514,9 @@ private struct RingEffect: GeometryEffect {
         remoteNotifications: .noop,
         userNotifications: .noop
       )
-      environment.userNotifications.getNotificationSettings = .init(
-        value: .init(authorizationStatus: .notDetermined))
+      environment.userNotifications.getNotificationSettings = {
+        .init(authorizationStatus: .notDetermined)
+      }
 
       return Preview {
         NavigationView {

@@ -5,6 +5,7 @@ import ComposableArchitecture
 import ComposableUserNotifications
 import DictionaryClient
 import FileClient
+import NotificationHelpers
 import RemoteNotificationsClient
 import SettingsFeature
 import SharedModels
@@ -57,27 +58,24 @@ let appDelegateReducer = Reducer<
       environment.userNotifications.delegate
         .map(AppDelegateAction.userNotifications),
 
-      environment.userNotifications.getNotificationSettings
-        .receive(on: environment.mainQueue)
-        .flatMap { settings in
-          [.notDetermined, .provisional].contains(settings.authorizationStatus)
-            ? environment.userNotifications.requestAuthorization(.provisional)
-            : settings.authorizationStatus == .authorized
-              ? environment.userNotifications.requestAuthorization([.alert, .sound])
-              : .none
-        }
-        .ignoreFailure()
-        .flatMap { successful in
-          successful
-            ? Effect.registerForRemoteNotifications(
-              remoteNotifications: environment.remoteNotifications,
-              scheduler: environment.mainQueue,
-              userNotifications: environment.userNotifications
-            )
-            : .none
-        }
-        .eraseToEffect()
-        .fireAndForget(),
+      .run { send in
+        do {
+          let success: Bool
+          switch await environment.userNotifications.getNotificationSettings().authorizationStatus {
+          case .authorized:
+            success = try await environment.userNotifications.requestAuthorization([.alert, .sound])
+          case .notDetermined, .provisional:
+            success = try await environment.userNotifications.requestAuthorization(.provisional)
+          default:
+            return
+          }
+          guard success else { return }
+          await registerForRemoteNotifications(
+            remoteNotifications: environment.remoteNotifications,
+            userNotifications: environment.userNotifications
+          )
+        } catch {}
+      },
 
       // Preload dictionary
       Effect
@@ -99,7 +97,7 @@ let appDelegateReducer = Reducer<
 
   case let .didRegisterForRemoteNotifications(.success(tokenData)):
     let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
-    return environment.userNotifications.getNotificationSettings
+    return Effect.task { await environment.userNotifications.getNotificationSettings() }
       .flatMap { settings in
         environment.apiClient.apiRequest(
           route: .push(
