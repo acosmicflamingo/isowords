@@ -116,7 +116,7 @@ let appDelegateReducer = Reducer<
 
   case let .userNotifications(.willPresentNotification(_, completionHandler)):
     return .fireAndForget {
-      completionHandler(.banner)
+      await completionHandler(.banner)
     }
 
   case .userNotifications:

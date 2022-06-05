@@ -30,6 +30,7 @@ extension AppEnvironment {
       $1 == "installationTimeKey" ? .none : defaults.setDouble($0, $1)
     }
     $0.userNotifications.delegate = .none
-    $0.userNotifications.getNotificationSettings = .none
+    $0.userNotifications.getNotificationSettings = { .init(authorizationStatus: .notDetermined) }
+    $0.userNotifications.requestAuthorization = { _ in false }
   }
 }

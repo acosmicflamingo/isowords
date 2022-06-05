@@ -124,7 +124,7 @@ public let cubePreviewReducer = Reducer<
           Effect(value: .set(\.$nub.location, .face(face)))
             .receive(
               on: environment.mainQueue
-                .animate(withDuration: moveDuration, options: .curveEaseInOut)
+//                .animate(withDuration: moveDuration, options: .curveEaseInOut)
             )
             .eraseToEffect()
         )
@@ -153,7 +153,7 @@ public let cubePreviewReducer = Reducer<
       )
       effects.append(
         Effect(value: .set(\.$nub.location, .offScreenRight))
-          .receive(on: environment.mainQueue.animate(withDuration: 1))
+//          .receive(on: environment.mainQueue.animate(withDuration: 1))
           .eraseToEffect()
       )
 

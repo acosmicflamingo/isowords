@@ -234,15 +234,15 @@ let appReducerCore = Reducer<AppState, AppAction, AppEnvironment> { state, actio
     )
 
   case let .appDelegate(.userNotifications(.didReceiveResponse(response, completionHandler))):
-    let effect = Effect<AppAction, Never>.fireAndForget(completionHandler)
-
     guard
       let data =
         try? JSONSerialization
         .data(withJSONObject: response.notification.request.content.userInfo),
       let pushNotificationContent = try? JSONDecoder()
         .decode(PushNotificationContent.self, from: data)
-    else { return effect }
+    else {
+      return .fireAndForget { await completionHandler() }
+    }
 
     switch pushNotificationContent {
     case .dailyChallengeEndsSoon:
@@ -260,7 +260,7 @@ let appReducerCore = Reducer<AppState, AppAction, AppEnvironment> { state, actio
       state.home.route = .dailyChallenge(.init())
     }
 
-    return effect
+    return .fireAndForget { await completionHandler() }
 
   case .appDelegate:
     return .none

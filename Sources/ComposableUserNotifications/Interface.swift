@@ -11,10 +11,11 @@ public struct UserNotificationClient {
   public var requestAuthorization: @Sendable (UNAuthorizationOptions) async throws -> Bool
 
   public enum DelegateEvent: Equatable {
-    case didReceiveResponse(Notification.Response, completionHandler: () -> Void)
+    case didReceiveResponse(Notification.Response, completionHandler: @Sendable () async -> Void)
     case openSettingsForNotification(Notification?)
     case willPresentNotification(
-      Notification, completionHandler: (UNNotificationPresentationOptions) -> Void)
+      Notification, completionHandler: @Sendable (UNNotificationPresentationOptions) async -> Void
+    )
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
       switch (lhs, rhs) {

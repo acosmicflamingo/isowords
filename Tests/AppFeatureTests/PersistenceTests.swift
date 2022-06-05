@@ -8,7 +8,6 @@ import GameFeature
 import GameOverFeature
 import HomeFeature
 import Overture
-import Prelude
 import ServerRouter
 import SettingsFeature
 import SharedModels
@@ -22,8 +21,9 @@ import XCTest
 @testable import SoloFeature
 @testable import UserDefaultsClient
 
+@MainActor
 class PersistenceTests: XCTestCase {
-  func testUnlimitedSaveAndQuit() {
+  func testUnlimitedSaveAndQuit() async {
     var saves: [Data] = []
 
     let store = TestStore(
@@ -151,7 +151,7 @@ class PersistenceTests: XCTestCase {
     }
   }
 
-  func testUnlimitedAbandon() throws {
+  func testUnlimitedAbandon() async throws {
     var didArchiveGame = false
     var saves: [Data] = []
 
@@ -268,7 +268,7 @@ class PersistenceTests: XCTestCase {
     XCTAssertNoDifference(didArchiveGame, true)
   }
 
-  func testUnlimitedResume() {
+  func testUnlimitedResume() async {
     let savedGames = SavedGamesState(dailyChallengeUnlimited: nil, unlimited: .mock)
     let store = TestStore(
       initialState: AppState(),
@@ -279,7 +279,7 @@ class PersistenceTests: XCTestCase {
     )
 
     store.send(.appDelegate(.didFinishLaunching))
-    store.receive(.savedGamesLoaded(.success(savedGames))) {
+    await store.receive(.savedGamesLoaded(.success(savedGames))) {
       $0.home.savedGames = savedGames
     }
     store.send(.home(.setNavigation(tag: .solo))) {

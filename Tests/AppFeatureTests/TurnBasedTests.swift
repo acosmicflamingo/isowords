@@ -20,12 +20,13 @@ import XCTest
 @testable import ComposableGameCenter
 @testable import HomeFeature
 
+@MainActor
 class TurnBasedTests: XCTestCase {
   let backgroundQueue = DispatchQueue.test
   let mainQueue = DispatchQueue.test
   let mainRunLoop = RunLoop.test
 
-  func testNewGame() throws {
+  func testNewGame() async throws {
     var didEndTurnWithRequest: TurnBasedMatchClient.EndTurnRequest?
     var didSaveCurrentTurn = false
     let listener = PassthroughSubject<LocalPlayerClient.ListenerEvent, Never>()
@@ -75,17 +76,17 @@ class TurnBasedTests: XCTestCase {
       }
     )
 
-    store.send(.appDelegate(.didFinishLaunching))
+    let task = store.send(.appDelegate(.didFinishLaunching))
     store.send(.home(.onAppear))
 
-    store.receive(.home(.authenticationResponse(.mock)))
-    store.receive(.home(.serverConfigResponse(.init()))) {
+    await store.receive(.home(.authenticationResponse(.mock)))
+    await store.receive(.home(.serverConfigResponse(.init()))) {
       $0.home.hasChangelog = true
     }
 
-    self.backgroundQueue.advance()
-    store.receive(.home(.set(\.$hasPastTurnBasedGames, false)))
-    store.receive(.home(.matchesLoaded(.success([]))))
+    await self.backgroundQueue.advance()
+    await store.receive(.home(.set(\.$hasPastTurnBasedGames, false)))
+    await store.receive(.home(.matchesLoaded(.success([]))))
 
     store.send(.home(.multiplayer(.startButtonTapped)))
 
@@ -107,7 +108,7 @@ class TurnBasedTests: XCTestCase {
         secondsPlayed: 0
       )
     )
-    store.receive(
+    await store.receive(
       .gameCenter(.listener(.turnBased(.receivedTurnEventForMatch(newMatch, didBecomeActive: true))))
     ) {
       $0.game = initialGameState
@@ -125,20 +126,20 @@ class TurnBasedTests: XCTestCase {
     }
     store.send(.currentGame(.game(.onAppear)))
 
-    store.receive(.currentGame(.game(.gameLoaded))) {
+    await store.receive(.currentGame(.game(.gameLoaded))) {
       try XCTUnwrap(&$0.game) {
         $0.isGameLoaded = true
       }
     }
-    store.receive(.currentGame(.game(.matchesLoaded(.success([]))))) {
+    await store.receive(.currentGame(.game(.matchesLoaded(.success([]))))) {
       try XCTUnwrap(&$0.game) {
         $0.isGameLoaded = true
       }
     }
 
-    self.backgroundQueue.advance()
-    store.receive(.home(.set(\.$hasPastTurnBasedGames, false)))
-    store.receive(.home(.matchesLoaded(.success([]))))
+    await self.backgroundQueue.advance()
+    await store.receive(.home(.set(\.$hasPastTurnBasedGames, false)))
+    await store.receive(.home(.matchesLoaded(.success([]))))
 
     XCTAssert(didSaveCurrentTurn)
 
@@ -242,7 +243,7 @@ class TurnBasedTests: XCTestCase {
       )
     }
 
-    store.receive(
+    await store.receive(
       .currentGame(.game(.gameCenter(.turnBasedMatchResponse(.success(updatedMatch)))))
     ) {
       try XCTUnwrap(&$0.game) {
@@ -259,6 +260,8 @@ class TurnBasedTests: XCTestCase {
 
     store.send(.currentGame(.onDisappear))
     listener.send(completion: .finished)
+
+    await task.finish()
   }
 
   func testResumeGame() {

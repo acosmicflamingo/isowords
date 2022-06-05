@@ -7,8 +7,9 @@ import XCTest
 
 @testable import AppFeature
 
+@MainActor
 class UserNotificationsTests: XCTestCase {
-  func testReceiveBackgroundNotification() {
+  func testReceiveBackgroundNotification() async {
     let delegate = PassthroughSubject<UserNotificationClient.DelegateEvent, Never>()
     let response = UserNotificationClient.Notification.Response(
       notification: UserNotificationClient.Notification(
@@ -28,27 +29,26 @@ class UserNotificationsTests: XCTestCase {
       reducer: appReducer,
       environment: update(.didFinishLaunching) {
         $0.userNotifications.delegate = delegate.eraseToEffect()
+        $0.userNotifications.requestAuthorization = { _ in true }
       }
     )
 
     store.send(.appDelegate(.didFinishLaunching))
 
-    delegate.send(.didReceiveResponse(response, completionHandler: completionHandler))
-
-    store.receive(
+    delegate.send(.didReceiveResponse(response, completionHandler: { completionHandler() }))
+    await store.receive(
       .appDelegate(
         .userNotifications(
-          .didReceiveResponse(response, completionHandler: completionHandler)
+          .didReceiveResponse(response, completionHandler: { completionHandler() })
         )
       )
-    ) { _ in
-      XCTAssertTrue(didCallback)
+    )
 
-      delegate.send(completion: .finished)
-    }
+    XCTAssertTrue(didCallback)
+    delegate.send(completion: .finished)
   }
 
-  func testReceiveForegroundNotification() {
+  func testReceiveForegroundNotification() async {
     let delegate = PassthroughSubject<UserNotificationClient.DelegateEvent, Never>()
     let notification = UserNotificationClient.Notification(
       date: .mock,
@@ -66,23 +66,25 @@ class UserNotificationsTests: XCTestCase {
       reducer: appReducer,
       environment: update(.didFinishLaunching) {
         $0.userNotifications.delegate = delegate.eraseToEffect()
+        $0.userNotifications.requestAuthorization = { _ in true }
       }
     )
 
     store.send(.appDelegate(.didFinishLaunching))
 
-    delegate.send(.willPresentNotification(notification, completionHandler: completionHandler))
+    delegate.send(
+      .willPresentNotification(notification, completionHandler: { completionHandler($0) })
+    )
 
-    store.receive(
+    await store.receive(
       .appDelegate(
         .userNotifications(
-          .willPresentNotification(notification, completionHandler: completionHandler)
+          .willPresentNotification(notification, completionHandler: { completionHandler($0) })
         )
       )
-    ) { _ in
-      XCTAssertNoDifference(didCallbackWithOptions, .banner)
+    )
 
-      delegate.send(completion: .finished)
-    }
+    XCTAssertNoDifference(didCallbackWithOptions, .banner)
+    delegate.send(completion: .finished)
   }
 }

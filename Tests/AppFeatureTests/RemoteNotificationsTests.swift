@@ -9,24 +9,23 @@ import XCTest
 
 @testable import AppFeature
 
+@MainActor
 class RemoteNotificationsTests: XCTestCase {
-  func testRegisterForRemoteNotifications_OnActivate_Authorized() {
-    var didRegisterForRemoteNotifications = false
-    var requestedAuthorizationOptions: UNAuthorizationOptions?
+  func testRegisterForRemoteNotifications_OnActivate_Authorized() async {
+    let didRegisterForRemoteNotifications = SendableState<Bool>(false)
+    let requestedAuthorizationOptions = SendableState<UNAuthorizationOptions?>(nil)
 
     var environment = AppEnvironment.didFinishLaunching
     environment.build.number = { 80 }
     environment.remoteNotifications.register = {
-      .fireAndForget {
-        didRegisterForRemoteNotifications = true
-      }
+      await didRegisterForRemoteNotifications.set(true)
     }
-    environment.userNotifications.getNotificationSettings = .init(
-      value: .init(authorizationStatus: .authorized)
-    )
+    environment.userNotifications.getNotificationSettings = {
+      .init(authorizationStatus: .authorized)
+    }
     environment.userNotifications.requestAuthorization = { options in
-      requestedAuthorizationOptions = options
-      return .init(value: true)
+      await requestedAuthorizationOptions.set(options)
+      return true
     }
 
     let store = TestStore(
@@ -37,9 +36,11 @@ class RemoteNotificationsTests: XCTestCase {
 
     // Register remote notifications on .didFinishLaunching
 
-    store.send(.appDelegate(.didFinishLaunching))
-    XCTAssertNoDifference(requestedAuthorizationOptions, [.alert, .sound])
-    XCTAssertTrue(didRegisterForRemoteNotifications)
+    await store.send(.appDelegate(.didFinishLaunching)).finish()
+    let options = await requestedAuthorizationOptions.value
+    XCTAssertNoDifference(options, [.alert, .sound])
+    var didRegister = await didRegisterForRemoteNotifications.value
+    XCTAssertTrue(didRegister)
 
     store.environment.apiClient.override(
       route: .push(
@@ -51,13 +52,14 @@ class RemoteNotificationsTests: XCTestCase {
 
     // Register remote notifications on .didChangeScenePhase(.active)
 
-    didRegisterForRemoteNotifications = false
+    await didRegisterForRemoteNotifications.set(false)
 
     store.environment.audioPlayer.secondaryAudioShouldBeSilencedHint = { false }
     store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in .none }
 
-    store.send(.didChangeScenePhase(.active))
-    XCTAssertTrue(didRegisterForRemoteNotifications)
+    await store.send(.didChangeScenePhase(.active)).finish()
+    didRegister = await didRegisterForRemoteNotifications.value
+    XCTAssertTrue(didRegister)
 
     store.environment.apiClient.override(
       route: .push(
@@ -65,10 +67,12 @@ class RemoteNotificationsTests: XCTestCase {
       ),
       withResponse: .init(value: (Data(), URLResponse()))
     )
-    store.send(.appDelegate(.didRegisterForRemoteNotifications(.success(Data("baadbeef".utf8)))))
+    await store
+      .send(.appDelegate(.didRegisterForRemoteNotifications(.success(Data("baadbeef".utf8)))))
+      .finish()
   }
 
-  func testRegisterForRemoteNotifications_NotAuthorized() {
+  func testRegisterForRemoteNotifications_NotAuthorized() async {
     var environment = AppEnvironment.didFinishLaunching
     environment.remoteNotifications = .failing
 
@@ -78,15 +82,15 @@ class RemoteNotificationsTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.appDelegate(.didFinishLaunching))
+    await store.send(.appDelegate(.didFinishLaunching)).finish()
 
     store.environment.audioPlayer.secondaryAudioShouldBeSilencedHint = { false }
     store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in .none }
 
-    store.send(.didChangeScenePhase(.active))
+    await store.send(.didChangeScenePhase(.active)).finish()
   }
 
-  func testReceiveNotification_dailyChallengeEndsSoon() {
+  func testReceiveNotification_dailyChallengeEndsSoon() async {
     let userNotificationsDelegate = PassthroughSubject<
       UserNotificationClient.DelegateEvent, Never
     >()
@@ -125,21 +129,21 @@ class RemoteNotificationsTests: XCTestCase {
     var didReceiveResponseCompletionHandlerCalled = false
     let didReceiveResponseCompletionHandler = { didReceiveResponseCompletionHandlerCalled = true }
 
-    store.send(.appDelegate(.didFinishLaunching))
+    let task = store.send(.appDelegate(.didFinishLaunching))
 
     userNotificationsDelegate.send(
       .willPresentNotification(
         notification,
-        completionHandler: willPresentNotificationCompletionHandler
+        completionHandler: { willPresentNotificationCompletionHandler($0) }
       )
     )
 
-    store.receive(
+    await store.receive(
       .appDelegate(
         .userNotifications(
           .willPresentNotification(
             notification,
-            completionHandler: willPresentNotificationCompletionHandler
+            completionHandler: { willPresentNotificationCompletionHandler($0) }
           )
         )
       )
@@ -147,15 +151,15 @@ class RemoteNotificationsTests: XCTestCase {
     XCTAssertNoDifference(notificationPresentationOptions, .banner)
 
     userNotificationsDelegate.send(
-      .didReceiveResponse(response, completionHandler: didReceiveResponseCompletionHandler)
+      .didReceiveResponse(response, completionHandler: { didReceiveResponseCompletionHandler() })
     )
 
-    store.receive(
+    await store.receive(
       .appDelegate(
         .userNotifications(
           .didReceiveResponse(
             response,
-            completionHandler: didReceiveResponseCompletionHandler
+            completionHandler: { didReceiveResponseCompletionHandler() }
           )
         )
       )
@@ -166,5 +170,7 @@ class RemoteNotificationsTests: XCTestCase {
     XCTAssert(didReceiveResponseCompletionHandlerCalled)
 
     userNotificationsDelegate.send(completion: .finished)
+
+    await task.finish()
   }
 }

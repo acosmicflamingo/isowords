@@ -70,7 +70,7 @@ extension UserNotificationClient {
       withCompletionHandler completionHandler: @escaping () -> Void
     ) {
       self.subscriber.send(
-        .didReceiveResponse(.init(rawValue: response), completionHandler: completionHandler)
+        .didReceiveResponse(.init(rawValue: response), completionHandler: { completionHandler() })
       )
     }
 
@@ -92,7 +92,7 @@ extension UserNotificationClient {
       self.subscriber.send(
         .willPresentNotification(
           .init(rawValue: notification),
-          completionHandler: completionHandler
+          completionHandler: { completionHandler($0) }
         )
       )
     }
