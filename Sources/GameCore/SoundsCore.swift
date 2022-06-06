@@ -99,12 +99,13 @@ extension Reducer where State == GameState, Action == GameAction, Environment ==
           state.cubeStartedShakingAt = state.cubeStartedShakingAt ?? environment.date()
 
           return .run { send in
-            guard cubeWasShaking else { return }
+            guard !cubeWasShaking else { return }
             await environment.audioPlayer.play(.cubeShake)
             for await _ in environment.mainQueue.timer(interval: 2) {
               await environment.audioPlayer.play(.cubeShake)
             }
           }
+          .cancellable(id: CubeShakingId())
 
         } else {
           state.cubeStartedShakingAt = nil
