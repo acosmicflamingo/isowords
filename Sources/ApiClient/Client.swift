@@ -89,21 +89,24 @@ public struct ApiClient {
     file: StaticString = #file,
     line: UInt = #line
   ) async throws -> A {
-    try await withCheckedThrowingContinuation { continuation in
+    let stream = AsyncThrowingStream<A, Error> { continuation in
       var cancellable: AnyCancellable!
       cancellable = self.apiRequest(route: route, as: responseType, file: file, line: line).sink(
         receiveCompletion: { completion in
           switch completion {
           case let .failure(error):
-            continuation.resume(throwing: error)
+            continuation.finish(throwing: error)
           case .finished:
-            return
+            continuation.finish()
           }
           _ = cancellable
         },
-        receiveValue: { continuation.resume(returning: $0) }
+        receiveValue: { continuation.yield($0) }
       )
     }
+    guard let response = try await stream.first(where: { _ in true })
+    else { throw CancellationError() }
+    return response
   }
 
   public func request<A: Decodable>(
@@ -138,21 +141,24 @@ public struct ApiClient {
     file: StaticString = #file,
     line: UInt = #line
   ) async throws -> A {
-    try await withCheckedThrowingContinuation { continuation in
+    let stream = AsyncThrowingStream<A, Error> { continuation in
       var cancellable: AnyCancellable!
       cancellable = self.request(route: route, as: responseType, file: file, line: line).sink(
         receiveCompletion: { completion in
           switch completion {
           case let .failure(error):
-            continuation.resume(throwing: error)
+            continuation.finish(throwing: error)
           case .finished:
-            return
+            continuation.finish()
           }
           _ = cancellable
         },
-        receiveValue: { continuation.resume(returning: $0) }
+        receiveValue: { continuation.yield($0) }
       )
     }
+    guard let response = try await stream.first(where: { _ in true })
+    else { throw CancellationError() }
+    return response
   }
 
   public struct LeaderboardEnvelope: Codable, Equatable {
