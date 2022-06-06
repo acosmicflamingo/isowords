@@ -61,9 +61,6 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    await store.receive(.delayedOnAppear) {
-      $0.isViewEnabled = true
-    }
     await store.receive(
       .submitGameResponse(
         .success(
@@ -82,6 +79,9 @@ class GameOverFeatureTests: XCTestCase {
         .lastWeek: .init(outOf: 1000, rank: 10),
         .allTime: .init(outOf: 10000, rank: 100),
       ])
+    }
+    await store.receive(.delayedOnAppear) {
+      $0.isViewEnabled = true
     }
     await store.receive(
       .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
@@ -174,7 +174,6 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
     await store.receive(
       .submitGameResponse(
         .success(
@@ -191,6 +190,7 @@ class GameOverFeatureTests: XCTestCase {
     ) {
       $0.dailyChallenges = dailyChallengeResponses
     }
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
     await store.receive(
       .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
     )
@@ -254,8 +254,8 @@ class GameOverFeatureTests: XCTestCase {
     )
 
     store.send(.onAppear)
-    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
     await store.receive(.submitGameResponse(.success(.turnBased)))
+    await store.receive(.delayedOnAppear) { $0.isViewEnabled = true }
     await store.receive(
       .userNotificationSettingsResponse(.init(authorizationStatus: .notDetermined))
     )

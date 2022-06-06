@@ -45,7 +45,7 @@ class TurnBasedTests: XCTestCase {
           .override(route: .leaderboard(.weekInReview(language: .en)), withResponse: .none)
         $0.apiClient.authenticate = { _ in .init(value: .mock) }
         $0.apiClient.currentPlayer = { currentPlayer }
-        $0.audioPlayer.loop = { _ in .none }
+        $0.audioPlayer.loop = { _ in }
         $0.audioPlayer.play = { _ in }
         $0.audioPlayer.stop = { _ in .none }
         $0.backgroundQueue = self.backgroundQueue.eraseToAnyScheduler()

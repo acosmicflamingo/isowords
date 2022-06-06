@@ -23,10 +23,8 @@ extension AudioPlayerClient {
         }
       },
       loop: { sound in
-        .fireAndForget {
-          queue.async {
-            files[sound]?.play(loop: true)
-          }
+        queue.async {
+          files[sound]?.play(loop: true)
         }
       },
       play: { sound in

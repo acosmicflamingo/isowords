@@ -292,10 +292,6 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
       //        : .none
 
       return .merge(
-        Effect(value: .delayedOnAppear)
-          .delay(for: 2, scheduler: environment.mainRunLoop)
-          .eraseToEffect(),
-
         submitGameEffect,
 
         //        turnBasedConfettiEffect,
@@ -321,14 +317,19 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
         .eraseToEffect(),
 
         .run { send in
-          let settings = await environment.userNotifications.getNotificationSettings()
-          await send(.userNotificationSettingsResponse(settings))
-        },
-
-        environment.audioPlayer.loop(.gameOverMusicLoop)
-          .fireAndForget(),
-
-        .fireAndForget { await environment.audioPlayer.play(.transitionIn) }
+          await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+              try await environment.mainRunLoop.sleep(for: 2)
+              await send(.delayedOnAppear)
+            }
+            group.addTask {
+              let settings = await environment.userNotifications.getNotificationSettings()
+              await send(.userNotificationSettingsResponse(settings))
+            }
+            group.addTask { await environment.audioPlayer.loop(.gameOverMusicLoop) }
+            group.addTask { await environment.audioPlayer.play(.transitionIn) }
+          }
+        }
       )
 
     case .notificationsAuthAlert(.delegate(.close)):

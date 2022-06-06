@@ -22,8 +22,10 @@ extension Reducer where State == GameState, Action == GameAction, Environment ==
               }
 
             } else {
-              soundEffect = environment.audioPlayer
-                .loop([.unlimitedGameBgLoop1, .unlimitedGameBgLoop2].randomElement()!)
+              soundEffect = .fireAndForget {
+                await environment.audioPlayer
+                  .loop([.unlimitedGameBgLoop1, .unlimitedGameBgLoop2].randomElement()!)
+              }
             }
             return soundEffect.fireAndForget()
 

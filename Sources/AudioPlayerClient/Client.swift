@@ -2,7 +2,7 @@ import ComposableArchitecture
 
 public struct AudioPlayerClient {
   public var load: ([Sound]) -> Effect<Never, Never>
-  public var loop: (Sound) -> Effect<Never, Never>
+  public var loop: @Sendable (Sound) async -> Void
   public var play: @Sendable (Sound) async -> Void
   public var secondaryAudioShouldBeSilencedHint: () -> Bool
   public var setGlobalVolumeForMusic: (Float) -> Effect<Never, Never>
@@ -38,7 +38,7 @@ public struct AudioPlayerClient {
 extension AudioPlayerClient {
   public static let noop = Self(
     load: { _ in .none },
-    loop: { _ in .none },
+    loop: { _ in },
     play: { _ in },
     secondaryAudioShouldBeSilencedHint: { false },
     setGlobalVolumeForMusic: { _ in .none },
@@ -54,7 +54,7 @@ extension AudioPlayerClient {
   extension AudioPlayerClient {
     public static let failing = Self(
       load: { _ in .failing("\(Self.self).load is unimplemented") },
-      loop: { _ in .failing("\(Self.self).loop is unimplemented") },
+      loop: { _ in XCTFail("\(Self.self).loop is unimplemented") },
       play: { _ in XCTFail("\(Self.self).play is unimplemented") },
       secondaryAudioShouldBeSilencedHint: {
         XCTFail("\(Self.self).secondaryAudioShouldBeSilencedHint is unimplemented")
