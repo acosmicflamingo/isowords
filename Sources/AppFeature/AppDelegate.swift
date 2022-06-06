@@ -96,22 +96,20 @@ let appDelegateReducer = Reducer<
 
   case let .didRegisterForRemoteNotifications(.success(tokenData)):
     let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
-    return Effect.task { await environment.userNotifications.getNotificationSettings() }
-      .flatMap { settings in
-        environment.apiClient.apiRequest(
-          route: .push(
-            .register(
-              .init(
-                authorizationStatus: .init(rawValue: settings.authorizationStatus.rawValue),
-                build: environment.build.number(),
-                token: token
-              )
+    return .fireAndForget {
+      let settings = await environment.userNotifications.getNotificationSettings()
+      try await environment.apiClient.apiRequest(
+        route: .push(
+          .register(
+            .init(
+              authorizationStatus: .init(rawValue: settings.authorizationStatus.rawValue),
+              build: environment.build.number(),
+              token: token
             )
           )
         )
-      }
-      .receive(on: environment.mainQueue)
-      .fireAndForget()
+      )
+    }
 
   case let .userNotifications(.willPresentNotification(_, completionHandler)):
     return .fireAndForget {

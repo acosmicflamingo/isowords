@@ -49,6 +49,14 @@ public struct ApiClient {
     self.apiRequest(route: route, as: Unit.self, file: file, line: line)
   }
 
+  public func apiRequest(
+    route: ServerRoute.Api.Route,
+    file: StaticString = #file,
+    line: UInt = #line
+  ) async throws {
+    _ = try await self.apiRequest(route: route, as: Unit.self, file: file, line: line)
+  }
+
   public func apiRequest<A: Decodable>(
     route: ServerRoute.Api.Route,
     as: A.Type,
