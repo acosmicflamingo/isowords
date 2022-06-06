@@ -23,7 +23,7 @@ public struct DailyChallengeResultsState: Equatable {
 public enum DailyChallengeResultsAction: Equatable {
   case leaderboardResults(LeaderboardResultsAction<DailyChallenge.GameNumber?>)
   case loadHistory
-  case fetchHistoryResponse(Result<DailyChallengeHistoryResponse, ApiError>)
+  case fetchHistoryResponse(TaskResult<DailyChallengeHistoryResponse>)
 }
 
 public struct DailyChallengeResultsEnvironment {
@@ -97,19 +97,14 @@ public let dailyChallengeResultsReducer = Reducer<
       }
 
       enum CancelId {}
-      return environment.apiClient.apiRequest(
-        route: .dailyChallenge(
-          .results(
-            .history(
-              gameMode: state.leaderboardResults.gameMode,
-              language: .en
-            )
+      return .task { [gameMode = state.leaderboardResults.gameMode] in
+        await .fetchHistoryResponse(.init {
+          try await environment.apiClient.apiRequest(
+            route: .dailyChallenge(.results(.history(gameMode: gameMode, language: .en))),
+            as: DailyChallengeHistoryResponse.self
           )
-        ),
-        as: DailyChallengeHistoryResponse.self
-      )
-      .receive(on: environment.mainQueue)
-      .catchToEffect(DailyChallengeResultsAction.fetchHistoryResponse)
+        })
+      }
       .cancellable(id: CancelId.self, cancelInFlight: true)
     }
   }

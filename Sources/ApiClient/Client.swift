@@ -75,9 +75,32 @@ public struct ApiClient {
       .eraseToEffect()
   }
 
+  public func apiRequest<A: Decodable>(
+    route: ServerRoute.Api.Route,
+    as responseType: A.Type,
+    file: StaticString = #file,
+    line: UInt = #line
+  ) async throws -> A {
+    try await withCheckedThrowingContinuation { continuation in
+      var cancellable: AnyCancellable!
+      cancellable = self.apiRequest(route: route, as: responseType, file: file, line: line).sink(
+        receiveCompletion: { completion in
+          switch completion {
+          case let .failure(error):
+            continuation.resume(throwing: error)
+          case .finished:
+            return
+          }
+          _ = cancellable
+        },
+        receiveValue: { continuation.resume(returning: $0) }
+      )
+    }
+  }
+
   public func request<A: Decodable>(
     route: ServerRoute,
-    as: A.Type,
+    as responseType: A.Type,
     file: StaticString = #file,
     line: UInt = #line
   ) -> Effect<A, ApiError> {
@@ -99,6 +122,29 @@ public struct ApiClient {
       .apiDecode(as: A.self, file: file, line: line)
       .print("API")
       .eraseToEffect()
+  }
+
+  public func request<A: Decodable>(
+    route: ServerRoute,
+    as responseType: A.Type,
+    file: StaticString = #file,
+    line: UInt = #line
+  ) async throws -> A {
+    try await withCheckedThrowingContinuation { continuation in
+      var cancellable: AnyCancellable!
+      cancellable = self.request(route: route, as: responseType, file: file, line: line).sink(
+        receiveCompletion: { completion in
+          switch completion {
+          case let .failure(error):
+            continuation.resume(throwing: error)
+          case .finished:
+            return
+          }
+          _ = cancellable
+        },
+        receiveValue: { continuation.resume(returning: $0) }
+      )
+    }
   }
 
   public struct LeaderboardEnvelope: Codable, Equatable {

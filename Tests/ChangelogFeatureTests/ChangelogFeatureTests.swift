@@ -5,8 +5,9 @@ import XCTest
 @testable import ChangelogFeature
 @testable import UserDefaultsClient
 
+@MainActor
 class ChangelogFeatureTests: XCTestCase {
-  func testOnAppear_IsUpToDate() {
+  func testOnAppear_IsUpToDate() async {
     let changelog = Changelog(
       changes: [
         .init(version: "1.2", build: 42, log: "Bug fixes and improvements"),
@@ -32,7 +33,7 @@ class ChangelogFeatureTests: XCTestCase {
       $0.currentBuild = 42
       $0.isRequestInFlight = true
     }
-    store.receive(.changelogResponse(.success(changelog))) {
+    await store.receive(.changelogResponse(.success(changelog))) {
       $0.changelog = [
         .init(
           change: .init(version: "1.2", build: 42, log: "Bug fixes and improvements"),
@@ -47,7 +48,7 @@ class ChangelogFeatureTests: XCTestCase {
     }
   }
 
-  func testOnAppear_IsUpBehind() {
+  func testOnAppear_IsUpBehind() async {
     let changelog = Changelog(
       changes: [
         .init(version: "1.2", build: 42, log: "Bug fixes and improvements"),
@@ -74,7 +75,7 @@ class ChangelogFeatureTests: XCTestCase {
       $0.currentBuild = 40
       $0.isRequestInFlight = true
     }
-    store.receive(.changelogResponse(.success(changelog))) {
+    await store.receive(.changelogResponse(.success(changelog))) {
       $0.changelog = [
         .init(
           change: .init(version: "1.2", build: 42, log: "Bug fixes and improvements"),
