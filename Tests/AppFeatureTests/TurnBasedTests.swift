@@ -47,7 +47,7 @@ class TurnBasedTests: XCTestCase {
         $0.apiClient.currentPlayer = { currentPlayer }
         $0.audioPlayer.loop = { _ in }
         $0.audioPlayer.play = { _ in }
-        $0.audioPlayer.stop = { _ in .none }
+        $0.audioPlayer.stop = { _ in }
         $0.backgroundQueue = self.backgroundQueue.eraseToAnyScheduler()
         $0.build.number = { 42 }
         $0.database.playedGamesCount = { _ in .none }

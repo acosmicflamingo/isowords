@@ -242,8 +242,7 @@ public let onboardingReducer = Reducer<
         .setHasShownFirstLaunchOnboarding(true)
         .fireAndForget(),
 
-      environment.audioPlayer.stop(.onboardingBgMusic)
-        .fireAndForget(),
+      .fireAndForget { await environment.audioPlayer.stop(.onboardingBgMusic) },
 
       .cancel(id: DelayedNextStepId())
     )

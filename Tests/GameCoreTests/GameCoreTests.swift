@@ -9,7 +9,7 @@ class GameCoreTests: XCTestCase {
     var didEndMatchInTurn = false
 
     var environment = GameEnvironment.failing
-    environment.audioPlayer.stop = { _ in .none }
+    environment.audioPlayer.stop = { _ in }
     environment.database.saveGame = { _ in .none }
     environment.gameCenter.localPlayer.localPlayer = { .authenticated }
     environment.gameCenter.turnBasedMatch.endMatchInTurn = { _ in

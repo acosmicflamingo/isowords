@@ -122,17 +122,12 @@ let appDelegateReducer = Reducer<
   case let .userSettingsLoaded(result):
     state = (try? result.value) ?? state
     return .merge(
-      environment.audioPlayer.setGlobalVolumeForSoundEffects(
-        state.soundEffectsVolume
-      )
-      .fireAndForget(),
-
-      environment.audioPlayer.setGlobalVolumeForSoundEffects(
-        environment.audioPlayer.secondaryAudioShouldBeSilencedHint()
-          ? 0
-          : state.musicVolume
-      )
-      .fireAndForget(),
+      .fireAndForget { [state] in
+        await environment.audioPlayer.setGlobalVolumeForMusic(
+          environment.audioPlayer.secondaryAudioShouldBeSilencedHint() ? 0 : state.musicVolume
+        )
+        await environment.audioPlayer.setGlobalVolumeForSoundEffects(state.soundEffectsVolume)
+      },
 
       environment.setUserInterfaceStyle(state.colorScheme.userInterfaceStyle)
         // NB: This is necessary because UIKit needs at least one tick of the run loop before we

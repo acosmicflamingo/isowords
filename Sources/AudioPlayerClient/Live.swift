@@ -34,31 +34,23 @@ extension AudioPlayerClient {
         AVAudioSession.sharedInstance().secondaryAudioShouldBeSilencedHint
       },
       setGlobalVolumeForMusic: { volume in
-        .fireAndForget {
-          queue.async {
-            musicVolume = volume
-          }
+        queue.async {
+          musicVolume = volume
         }
       },
       setGlobalVolumeForSoundEffects: { volume in
-        .fireAndForget {
-          queue.async {
-            soundEffectsNode.volume = 0.25 * volume
-          }
+        queue.async {
+          soundEffectsNode.volume = 0.25 * volume
         }
       },
       setVolume: { sound, volume in
-        .fireAndForget {
-          queue.async {
-            files[sound]?.volume = volume
-          }
+        queue.async {
+          files[sound]?.volume = volume
         }
       },
       stop: { sound in
-        .fireAndForget {
-          queue.async {
-            files[sound]?.stop()
-          }
+        queue.async {
+          files[sound]?.stop()
         }
       }
     )

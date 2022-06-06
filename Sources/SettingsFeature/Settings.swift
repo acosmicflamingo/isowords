@@ -398,13 +398,14 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
         .fireAndForget()
 
     case .binding(\.$userSettings.musicVolume):
-      return environment.audioPlayer.setGlobalVolumeForMusic(state.userSettings.musicVolume)
-        .fireAndForget()
+      return .fireAndForget { [volume = state.userSettings.musicVolume] in
+        await environment.audioPlayer.setGlobalVolumeForMusic(volume)
+      }
 
     case .binding(\.$userSettings.soundEffectsVolume):
-      return environment.audioPlayer
-        .setGlobalVolumeForSoundEffects(state.userSettings.soundEffectsVolume)
-        .fireAndForget()
+      return .fireAndForget { [volume = state.userSettings.soundEffectsVolume] in
+        await environment.audioPlayer.setGlobalVolumeForSoundEffects(volume)
+      }
 
     case .binding:
       return .none

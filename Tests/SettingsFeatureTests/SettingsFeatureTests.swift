@@ -291,13 +291,11 @@ class SettingsFeatureTests: XCTestCase {
   // MARK: - Sounds
 
   func testSetMusicVolume() async {
-    var setMusicVolume: Float!
+    let volume = SendableState<Float?>(nil)
 
     var environment = self.defaultEnvironment
     environment.audioPlayer.setGlobalVolumeForMusic = { newValue in
-      .fireAndForget {
-        setMusicVolume = newValue
-      }
+      await volume.set(newValue)
     }
 
     let store = TestStore(
@@ -311,17 +309,16 @@ class SettingsFeatureTests: XCTestCase {
     }
     .finish()
 
-    XCTAssertNoDifference(setMusicVolume, 0.5)
+    let setVolume = await volume.value
+    XCTAssertNoDifference(setVolume, 0.5)
   }
 
   func testSetSoundEffectsVolume() async {
-    var setSoundEffectsVolume: Float!
+    let volume = SendableState<Float?>(nil)
 
     var environment = self.defaultEnvironment
     environment.audioPlayer.setGlobalVolumeForSoundEffects = { newValue in
-      .fireAndForget {
-        setSoundEffectsVolume = newValue
-      }
+      await volume.set(newValue)
     }
 
     let store = TestStore(
@@ -335,7 +332,8 @@ class SettingsFeatureTests: XCTestCase {
     }
     .finish()
 
-    XCTAssertNoDifference(setSoundEffectsVolume, 0.5)
+    let setVolume = await volume.value
+    XCTAssertNoDifference(setVolume, 0.5)
   }
 
   // MARK: - Appearance

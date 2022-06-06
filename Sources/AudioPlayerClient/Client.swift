@@ -1,14 +1,12 @@
-import ComposableArchitecture
-
 public struct AudioPlayerClient {
   public var load: @Sendable ([Sound]) async -> Void
   public var loop: @Sendable (Sound) async -> Void
   public var play: @Sendable (Sound) async -> Void
   public var secondaryAudioShouldBeSilencedHint: () -> Bool
-  public var setGlobalVolumeForMusic: (Float) -> Effect<Never, Never>
-  public var setGlobalVolumeForSoundEffects: (Float) -> Effect<Never, Never>
-  public var setVolume: (Sound, Float) -> Effect<Never, Never>
-  public var stop: (Sound) -> Effect<Never, Never>
+  public var setGlobalVolumeForMusic: @Sendable (Float) async -> Void
+  public var setGlobalVolumeForSoundEffects: @Sendable (Float) async -> Void
+  public var setVolume: @Sendable (Sound, Float) async -> Void
+  public var stop: @Sendable (Sound) async -> Void
 
   public struct Sound: Hashable {
     public let category: Category
@@ -41,10 +39,10 @@ extension AudioPlayerClient {
     loop: { _ in },
     play: { _ in },
     secondaryAudioShouldBeSilencedHint: { false },
-    setGlobalVolumeForMusic: { _ in .none },
-    setGlobalVolumeForSoundEffects: { _ in .none },
-    setVolume: { _, _ in .none },
-    stop: { _ in .none }
+    setGlobalVolumeForMusic: { _ in },
+    setGlobalVolumeForSoundEffects: { _ in },
+    setVolume: { _, _ in },
+    stop: { _ in }
   )
 }
 
@@ -61,13 +59,13 @@ extension AudioPlayerClient {
         return false
       },
       setGlobalVolumeForMusic: { _ in
-        .failing("\(Self.self).setGlobalVolumeForMusic is unimplemented")
+        XCTFail("\(Self.self).setGlobalVolumeForMusic is unimplemented")
       },
       setGlobalVolumeForSoundEffects: { _ in
-        .failing("\(Self.self).setGlobalVolumeForSoundEffects is unimplemented")
+        XCTFail("\(Self.self).setGlobalVolumeForSoundEffects is unimplemented")
       },
-      setVolume: { _, _ in .failing("\(Self.self).setVolume is unimplemented") },
-      stop: { _ in .failing("\(Self.self).stop is unimplemented") }
+      setVolume: { _, _ in XCTFail("\(Self.self).setVolume is unimplemented") },
+      stop: { _ in XCTFail("\(Self.self).stop is unimplemented") }
     )
   }
 #endif

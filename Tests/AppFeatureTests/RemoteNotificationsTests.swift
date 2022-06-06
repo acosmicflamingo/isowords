@@ -55,7 +55,7 @@ class RemoteNotificationsTests: XCTestCase {
     await didRegisterForRemoteNotifications.set(false)
 
     store.environment.audioPlayer.secondaryAudioShouldBeSilencedHint = { false }
-    store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in .none }
+    store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in }
 
     await store.send(.didChangeScenePhase(.active)).finish()
     didRegister = await didRegisterForRemoteNotifications.value
@@ -85,7 +85,7 @@ class RemoteNotificationsTests: XCTestCase {
     await store.send(.appDelegate(.didFinishLaunching)).finish()
 
     store.environment.audioPlayer.secondaryAudioShouldBeSilencedHint = { false }
-    store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in .none }
+    store.environment.audioPlayer.setGlobalVolumeForMusic = { _ in }
 
     await store.send(.didChangeScenePhase(.active)).finish()
   }

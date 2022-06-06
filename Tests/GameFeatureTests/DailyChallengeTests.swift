@@ -29,7 +29,7 @@ class DailyChallengeTests: XCTestCase {
 
     let environment = update(GameEnvironment.failing) {
       $0.audioPlayer.play = { _ in }
-      $0.audioPlayer.stop = { _ in .none }
+      $0.audioPlayer.stop = { _ in }
       $0.database.saveGame = { _ in
         didSave = true
         return .none
@@ -84,7 +84,7 @@ class DailyChallengeTests: XCTestCase {
     var didSave = false
     let environment = update(GameEnvironment.failing) {
       $0.audioPlayer.play = { _ in }
-      $0.audioPlayer.stop = { _ in .none }
+      $0.audioPlayer.stop = { _ in }
       $0.database.saveGame = { _ in
         didSave = true
         return .none

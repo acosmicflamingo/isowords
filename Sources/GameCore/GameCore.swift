@@ -1006,13 +1006,16 @@ extension UpgradeInterstitialFeature.GameContext {
 extension Effect where Output == Never, Failure == Never {
   public static func gameTearDownEffects(audioPlayer: AudioPlayerClient) -> Self {
     .merge(
-      .cancel(id: InterstitialId.self),
-      .cancel(id: ListenerId.self),
-      .cancel(id: LowPowerModeId.self),
-      .cancel(id: TimerId.self),
-      Effect
-        .merge(AudioPlayerClient.Sound.allMusic.map(audioPlayer.stop))
-        .fireAndForget()
+      .cancel(ids: [InterstitialId.self, ListenerId.self, LowPowerModeId.self, TimerId.self]),
+      .fireAndForget {
+        await withTaskGroup(of: Void.self) { group in
+          for sound in AudioPlayerClient.Sound.allMusic {
+            group.addTask {
+              await audioPlayer.stop(sound)
+            }
+          }
+        }
+      }
     )
   }
 }
