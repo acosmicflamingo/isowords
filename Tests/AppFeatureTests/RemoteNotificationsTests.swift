@@ -96,7 +96,7 @@ class RemoteNotificationsTests: XCTestCase {
     >()
 
     var environment = AppEnvironment.didFinishLaunching
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.userNotifications.delegate = userNotificationsDelegate.eraseToEffect()
 
     let inProgressGame = InProgressGame.mock

@@ -38,10 +38,7 @@ class PersistenceTests: XCTestCase {
         $0.dictionary.contains = { word, _ in word == "CAB" }
         $0.dictionary.randomCubes = { _ in .mock }
         $0.feedbackGenerator = .noop
-        $0.fileClient.save = { _, data in
-          saves.append(data)
-          return .none
-        }
+        $0.fileClient.save = { _, data in saves.append(data) }
         $0.mainRunLoop = .immediate
         $0.mainQueue = .immediate
       }
@@ -173,10 +170,7 @@ class PersistenceTests: XCTestCase {
           return .none
         }
         $0.gameCenter.localPlayer.localPlayer = { .notAuthenticated }
-        $0.fileClient.save = { _, data in
-          saves.append(data)
-          return .none
-        }
+        $0.fileClient.save = { _, data in saves.append(data) }
         $0.mainQueue = .immediate
       }
     )

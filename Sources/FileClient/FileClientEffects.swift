@@ -7,10 +7,8 @@ extension FileClient {
     try await self.load(SavedGamesState.self, from: savedGamesFileName)
   }
 
-  public func saveGames(
-    games: SavedGamesState, on queue: AnySchedulerOf<DispatchQueue>
-  ) -> Effect<Never, Never> {
-    self.save(games, to: savedGamesFileName, on: queue)
+  public func saveGames(_ games: SavedGamesState) async throws {
+    try await self.save(games, to: savedGamesFileName)
   }
 }
 

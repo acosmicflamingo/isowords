@@ -5,19 +5,19 @@ import XCTestDynamicOverlay
 
 extension FileClient {
   public static let noop = Self(
-    delete: { _ in .none },
+    delete: { _ in },
     load: { _ in .init() },
-    save: { _, _ in .none }
+    save: { _, _ in }
   )
 
   #if DEBUG
     public static let failing = Self(
-      delete: { .failing("\(Self.self).delete(\($0)) is unimplemented") },
+      delete: { XCTFail("\(Self.self).delete(\($0)) is unimplemented") },
       load: {
         XCTFail("\(Self.self).load(\($0)) is unimplemented")
         return .init()
       },
-      save: { file, _ in .failing("\(Self.self).save(\(file)) is unimplemented") }
+      save: { file, _ in XCTFail("\(Self.self).save(\(file)) is unimplemented") }
     )
   #endif
 

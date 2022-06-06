@@ -591,10 +591,10 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
 .onChange(of: \.userSettings) { userSettings, _, _, environment in
   struct SaveDebounceId: Hashable {}
 
-  return environment.fileClient
-    .saveUserSettings(userSettings: userSettings, on: environment.backgroundQueue)
-    .fireAndForget()
-    .debounce(id: SaveDebounceId(), for: .seconds(1), scheduler: environment.mainQueue)
+  return .fireAndForget {
+    try await environment.fileClient.saveUserSettings(userSettings)
+  }
+  .debounce(id: SaveDebounceId(), for: .seconds(1), scheduler: environment.mainQueue)
 }
 
 extension AlertState where Action == SettingsAction {

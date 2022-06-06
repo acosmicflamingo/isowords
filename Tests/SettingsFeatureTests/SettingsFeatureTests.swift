@@ -17,7 +17,7 @@ class SettingsFeatureTests: XCTestCase {
     environment.build.number = { 42 }
     environment.mainQueue = .immediate
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.storeKit.fetchProducts = { _ in .none }
     environment.storeKit.observer = .run { _ in AnyCancellable {} }
     return environment
@@ -60,7 +60,7 @@ class SettingsFeatureTests: XCTestCase {
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
@@ -104,7 +104,7 @@ class SettingsFeatureTests: XCTestCase {
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
@@ -144,7 +144,7 @@ class SettingsFeatureTests: XCTestCase {
     var environment = self.defaultEnvironment
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = .immediate
     environment.remoteNotifications.register = {}
     environment.serverConfig.config = { .init() }
@@ -188,7 +188,7 @@ class SettingsFeatureTests: XCTestCase {
       return true
     }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
@@ -246,7 +246,7 @@ class SettingsFeatureTests: XCTestCase {
     )
     environment.applicationClient.alternateIconName = { nil }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = mainQueue.eraseToAnyScheduler()
     environment.remoteNotifications.register = {}
     environment.serverConfig.config = { .init() }
@@ -290,7 +290,7 @@ class SettingsFeatureTests: XCTestCase {
 
   // MARK: - Sounds
 
-  func testSetMusicVolume() {
+  func testSetMusicVolume() async {
     var setMusicVolume: Float!
 
     var environment = self.defaultEnvironment
@@ -306,14 +306,15 @@ class SettingsFeatureTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.set(\.$userSettings.musicVolume, 0.5)) {
+    await store.send(.set(\.$userSettings.musicVolume, 0.5)) {
       $0.userSettings.musicVolume = 0.5
     }
+    .finish()
 
     XCTAssertNoDifference(setMusicVolume, 0.5)
   }
 
-  func testSetSoundEffectsVolume() {
+  func testSetSoundEffectsVolume() async {
     var setSoundEffectsVolume: Float!
 
     var environment = self.defaultEnvironment
@@ -329,16 +330,17 @@ class SettingsFeatureTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.set(\.$userSettings.soundEffectsVolume, 0.5)) {
+    await store.send(.set(\.$userSettings.soundEffectsVolume, 0.5)) {
       $0.userSettings.soundEffectsVolume = 0.5
     }
+    .finish()
 
     XCTAssertNoDifference(setSoundEffectsVolume, 0.5)
   }
 
   // MARK: - Appearance
 
-  func testSetColorScheme() {
+  func testSetColorScheme() async {
     var overriddenUserInterfaceStyle: UIUserInterfaceStyle!
 
     var environment = self.defaultEnvironment
@@ -359,13 +361,14 @@ class SettingsFeatureTests: XCTestCase {
     }
     XCTAssertNoDifference(overriddenUserInterfaceStyle, .light)
 
-    store.send(.set(\.$userSettings.colorScheme, .system)) {
+    await store.send(.set(\.$userSettings.colorScheme, .system)) {
       $0.userSettings.colorScheme = .system
     }
+    .finish()
     XCTAssertNoDifference(overriddenUserInterfaceStyle, .unspecified)
   }
 
-  func testSetAppIcon() {
+  func testSetAppIcon() async {
     var overriddenIconName: String!
 
     var environment = self.defaultEnvironment
@@ -374,7 +377,7 @@ class SettingsFeatureTests: XCTestCase {
         overriddenIconName = newValue
       }
     }
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
 
     let store = TestStore(
       initialState: SettingsState(),
@@ -382,9 +385,10 @@ class SettingsFeatureTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.set(\.$userSettings.appIcon, .icon2)) {
+    await store.send(.set(\.$userSettings.appIcon, .icon2)) {
       $0.userSettings.appIcon = .icon2
     }
+    .finish()
     XCTAssertNoDifference(overriddenIconName, "icon-2")
   }
 
@@ -399,7 +403,7 @@ class SettingsFeatureTests: XCTestCase {
       }
     }
     environment.backgroundQueue = .immediate
-    environment.fileClient.save = { _, _ in .none }
+    environment.fileClient.save = { _, _ in }
     environment.mainQueue = .immediate
     environment.serverConfig.config = { .init() }
     environment.userDefaults.boolForKey = { _ in false }
@@ -426,9 +430,10 @@ class SettingsFeatureTests: XCTestCase {
       $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
     }
 
-    store.send(.set(\.$userSettings.appIcon, nil)) {
+    await store.send(.set(\.$userSettings.appIcon, nil)) {
       $0.userSettings.appIcon = nil
     }
+    .finish()
     XCTAssertNoDifference(overriddenIconName, nil)
 
     store.send(.onDismiss)
@@ -506,7 +511,7 @@ class SettingsFeatureTests: XCTestCase {
     }
   }
 
-  func testToggleEnableGyroMotion() {
+  func testToggleEnableGyroMotion() async {
     let store = TestStore(
       initialState: SettingsState(userSettings: .init(enableGyroMotion: true)),
       reducer: settingsReducer,
@@ -516,12 +521,13 @@ class SettingsFeatureTests: XCTestCase {
     store.send(.set(\.$userSettings.enableGyroMotion, false)) {
       $0.userSettings.enableGyroMotion = false
     }
-    store.send(.set(\.$userSettings.enableGyroMotion, true)) {
+    await store.send(.set(\.$userSettings.enableGyroMotion, true)) {
       $0.userSettings.enableGyroMotion = true
     }
+    .finish()
   }
 
-  func testToggleEnableHaptics() {
+  func testToggleEnableHaptics() async {
     let store = TestStore(
       initialState: SettingsState(userSettings: .init(enableHaptics: true)),
       reducer: settingsReducer,
@@ -531,8 +537,9 @@ class SettingsFeatureTests: XCTestCase {
     store.send(.set(\.$userSettings.enableHaptics, false)) {
       $0.userSettings.enableHaptics = false
     }
-    store.send(.set(\.$userSettings.enableHaptics, true)) {
+    await store.send(.set(\.$userSettings.enableHaptics, true)) {
       $0.userSettings.enableHaptics = true
     }
+    .finish()
   }
 }

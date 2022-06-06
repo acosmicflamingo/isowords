@@ -8,14 +8,12 @@ extension FileClient {
 
     return Self(
       delete: { fileName in
-        .fireAndForget {
-          try? FileManager.default.removeItem(
-            at:
-              documentDirectory
-              .appendingPathComponent(fileName)
-              .appendingPathExtension("json")
-          )
-        }
+        try FileManager.default.removeItem(
+          at:
+            documentDirectory
+            .appendingPathComponent(fileName)
+            .appendingPathExtension("json")
+        )
       },
       load: { fileName in
         try Data(
@@ -26,14 +24,12 @@ extension FileClient {
         )
       },
       save: { fileName, data in
-        .fireAndForget {
-          _ = try? data.write(
-            to:
-              documentDirectory
-              .appendingPathComponent(fileName)
-              .appendingPathExtension("json")
-          )
-        }
+        try data.write(
+          to:
+            documentDirectory
+            .appendingPathComponent(fileName)
+            .appendingPathExtension("json")
+        )
       }
     )
   }

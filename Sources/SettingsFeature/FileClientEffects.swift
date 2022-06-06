@@ -6,10 +6,8 @@ extension FileClient {
     try await self.load(UserSettings.self, from: userSettingsFileName)
   }
 
-  public func saveUserSettings(
-    userSettings: UserSettings, on queue: AnySchedulerOf<DispatchQueue>
-  ) -> Effect<Never, Never> {
-    self.save(userSettings, to: userSettingsFileName, on: queue)
+  public func saveUserSettings(_ userSettings: UserSettings) async throws {
+    try await self.save(userSettings, to: userSettingsFileName)
   }
 }
 

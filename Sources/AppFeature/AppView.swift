@@ -206,10 +206,9 @@ extension Reducer where State == AppState, Action == AppAction, Environment == A
       }
       .onChange(of: \.home.savedGames) { savedGames, _, action, environment in
         if case .savedGamesLoaded(.success) = action { return .none }
-        return environment.fileClient
-          .saveGames(games: savedGames, on: environment.backgroundQueue)
-          .receive(on: environment.mainQueue)
-          .fireAndForget()
+        return .fireAndForget {
+          try await environment.fileClient.saveGames(savedGames)
+        }
       }
   }
 }
@@ -365,10 +364,9 @@ let appReducerCore = Reducer<AppState, AppAction, AppEnvironment> { state, actio
       != state.home.savedGames.dailyChallengeUnlimited?.dailyChallengeId
     {
       state.home.savedGames.dailyChallengeUnlimited = nil
-      return environment.fileClient
-        .saveGames(games: state.home.savedGames, on: environment.backgroundQueue)
-        .receive(on: environment.mainQueue)
-        .fireAndForget()
+      return .fireAndForget { [games = state.home.savedGames] in
+        try await environment.fileClient.saveGames(games)
+      }
     }
     return .none
 
