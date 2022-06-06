@@ -309,7 +309,7 @@ class OnboardingFeatureTests: XCTestCase {
     XCTAssertNoDifference(isFirstLaunchOnboardingKeySet, true)
   }
 
-  func testSkip_HasSeenOnboardingBefore() {
+  func testSkip_HasSeenOnboardingBefore() async {
     var isFirstLaunchOnboardingKeySet = false
 
     var environment = OnboardingEnvironment.failing
@@ -337,19 +337,19 @@ class OnboardingFeatureTests: XCTestCase {
 
     store.send(.onAppear)
 
-    self.mainQueue.advance(by: .seconds(4))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(4))
+    await store.receive(.delayedNextStep) {
       $0.step = .step2_FindWordsOnCube
     }
 
     store.send(.skipButtonTapped)
 
-    store.receive(.delegate(.getStarted))
+    await store.receive(.delegate(.getStarted))
 
     XCTAssertNoDifference(isFirstLaunchOnboardingKeySet, true)
   }
 
-  func testSkip_HasNotSeenOnboardingBefore() {
+  func testSkip_HasNotSeenOnboardingBefore() async {
     var isFirstLaunchOnboardingKeySet = false
 
     var environment = OnboardingEnvironment.failing
@@ -377,8 +377,8 @@ class OnboardingFeatureTests: XCTestCase {
 
     store.send(.onAppear)
 
-    self.mainQueue.advance(by: .seconds(4))
-    store.receive(.delayedNextStep) {
+    await self.mainQueue.advance(by: .seconds(4))
+    await store.receive(.delayedNextStep) {
       $0.step = .step2_FindWordsOnCube
     }
 
@@ -402,12 +402,12 @@ class OnboardingFeatureTests: XCTestCase {
       $0.alert = nil
     }
 
-    store.receive(.alert(.confirmSkipButtonTapped)) {
+    await store.receive(.alert(.confirmSkipButtonTapped)) {
       $0.step = .step21_PlayAGameYourself
     }
 
     store.send(.getStartedButtonTapped)
-    store.receive(.delegate(.getStarted))
+    await store.receive(.delegate(.getStarted))
 
     XCTAssertNoDifference(isFirstLaunchOnboardingKeySet, true)
   }

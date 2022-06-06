@@ -227,14 +227,10 @@ public let onboardingReducer = Reducer<
 
   case .alert(.skipButtonTapped):
     state.alert = nil
-    return .merge(
-      Effect(value: .alert(.confirmSkipButtonTapped))
-        .receive(on: ImmediateScheduler.shared.animation())
-        .eraseToEffect(),
-
-      environment.audioPlayer.play(.uiSfxTap)
-        .fireAndForget()
-    )
+    return .run { send in
+      await send(.alert(.confirmSkipButtonTapped), animation: .default)
+      await environment.audioPlayer.play(.uiSfxTap)
+    }
 
   case .delayedNextStep:
     state.step.next()
@@ -349,29 +345,23 @@ public let onboardingReducer = Reducer<
           .cancellable(id: DelayedNextStepId())
         : .none,
 
-      environment.audioPlayer.play(
-        state.presentationStyle == .demo
-          ? .timedGameBgLoop1
-          : .onboardingBgMusic
-      )
-      .fireAndForget()
+      .fireAndForget { [presentationStyle = state.presentationStyle] in
+        await environment.audioPlayer.play(
+          presentationStyle == .demo ? .timedGameBgLoop1 : .onboardingBgMusic
+        )
+      }
     )
 
   case .nextButtonTapped:
     state.step.next()
-    return environment.audioPlayer.play(.uiSfxTap)
-      .fireAndForget()
+    return .fireAndForget { await environment.audioPlayer.play(.uiSfxTap) }
 
   case .skipButtonTapped:
     guard !environment.userDefaults.hasShownFirstLaunchOnboarding else {
-      return .merge(
-        Effect(value: .delegate(.getStarted))
-          .receive(on: ImmediateScheduler.shared.animation())
-          .eraseToEffect(),
-
-        environment.audioPlayer.play(.uiSfxTap)
-          .fireAndForget()
-      )
+      return .run { send in
+        await send(.delegate(.getStarted), animation: .default)
+        await environment.audioPlayer.play(.uiSfxTap)
+      }
     }
     state.alert = .init(
       title: .init("Skip tutorial?"),
@@ -386,8 +376,7 @@ public let onboardingReducer = Reducer<
       ),
       secondaryButton: .default(.init("No, resume"), action: .send(.resumeButtonTapped))
     )
-    return environment.audioPlayer.play(.uiSfxTap)
-      .fireAndForget()
+    return .fireAndForget { await environment.audioPlayer.play(.uiSfxTap) }
   }
 }
 .onChange(of: \.game.selectedWordString) { selectedWord, state, _, _ in

@@ -711,13 +711,11 @@ extension GameState {
         self
           .selectedWord.compactMap { !self.cubes[$0.index].isInPlay ? $0.index : nil }
           .map { index in
-            environment.audioPlayer
-              .play(.cubeRemove)
-              .deferred(
-                for: .milliseconds(removeCubeDelay(index: index)),
-                scheduler: environment.mainQueue
-              )
-              .fireAndForget()
+            .fireAndForget {
+              try await environment.mainQueue
+                .sleep(for: .milliseconds(removeCubeDelay(index: index)))
+              await environment.audioPlayer.play(.cubeRemove)
+            }
           }
       )
     } else {

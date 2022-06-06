@@ -328,8 +328,7 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
         environment.audioPlayer.loop(.gameOverMusicLoop)
           .fireAndForget(),
 
-        environment.audioPlayer.play(.transitionIn)
-          .fireAndForget()
+        .fireAndForget { await environment.audioPlayer.play(.transitionIn) }
       )
 
     case .notificationsAuthAlert(.delegate(.close)):

@@ -74,31 +74,25 @@ let wordSubmitReducer = Reducer<
   switch action {
   case .backgroundTapped:
     state.wordSubmitButton.areReactionsOpen = false
-    return environment.audioPlayer.play(.uiSfxEmojiClose)
-      .fireAndForget()
+    return .fireAndForget { await environment.audioPlayer.play(.uiSfxEmojiClose) }
 
   case .delayedSubmitButtonPressed:
     state.wordSubmitButton.areReactionsOpen = true
-    return .merge(
-      .fireAndForget { await environment.feedbackGenerator.selectionChanged() },
-
-      environment.audioPlayer.play(.uiSfxEmojiOpen)
-        .fireAndForget()
-    )
+    return .fireAndForget {
+      await environment.feedbackGenerator.selectionChanged()
+      await environment.audioPlayer.play(.uiSfxEmojiOpen)
+    }
 
   case .delegate:
     return .none
 
   case let .reactionButtonTapped(reaction):
     state.wordSubmitButton.areReactionsOpen = false
-    return .merge(
-      .fireAndForget { await environment.feedbackGenerator.selectionChanged() },
-
-      environment.audioPlayer.play(.uiSfxEmojiSend)
-        .fireAndForget(),
-
-      Effect(value: .delegate(.confirmSubmit(reaction: reaction)))
-    )
+    return .run { send in
+      await environment.feedbackGenerator.selectionChanged()
+      await environment.audioPlayer.play(.uiSfxEmojiSend)
+      await send(.delegate(.confirmSubmit(reaction: reaction)))
+    }
 
   case .submitButtonPressed:
     guard state.isTurnBasedMatch
@@ -107,7 +101,7 @@ let wordSubmitReducer = Reducer<
     let closeSound: Effect<Never, Never>
     if state.wordSubmitButton.areReactionsOpen {
       state.wordSubmitButton.isClosing = true
-      closeSound = environment.audioPlayer.play(.uiSfxEmojiClose)
+      closeSound = .fireAndForget { await environment.audioPlayer.play(.uiSfxEmojiClose) }
     } else {
       closeSound = .none
     }

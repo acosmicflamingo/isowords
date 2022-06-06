@@ -367,8 +367,7 @@ public let homeReducer = Reducer<HomeState, HomeAction, HomeEnvironment>.combine
           mainRunLoop: environment.mainRunLoop
         ),
 
-        environment.audioPlayer.play(.uiSfxActionDestructive)
-          .fireAndForget()
+        .fireAndForget { await environment.audioPlayer.play(.uiSfxActionDestructive) }
       )
 
     case let .activeGames(.turnBasedGameMenuItemTapped(.rematch(matchId))):

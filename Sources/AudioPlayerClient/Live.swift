@@ -30,10 +30,8 @@ extension AudioPlayerClient {
         }
       },
       play: { sound in
-        .fireAndForget {
-          queue.async {
-            files[sound]?.play()
-          }
+        queue.async {
+          files[sound]?.play()
         }
       },
       secondaryAudioShouldBeSilencedHint: {
