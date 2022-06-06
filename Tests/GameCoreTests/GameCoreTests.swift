@@ -3,8 +3,9 @@ import ComposableArchitecture
 import GameCore
 import XCTest
 
+@MainActor
 class GameCoreTests: XCTestCase {
-  func testForfeitTurnBasedGame() {
+  func testForfeitTurnBasedGame() async {
     var didEndMatchInTurn = false
 
     var environment = GameEnvironment.failing
@@ -36,7 +37,7 @@ class GameCoreTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.forfeitGameButtonTapped) {
+    await store.send(.forfeitGameButtonTapped) {
       $0.alert = .init(
         title: .init("Are you sure?"),
         message: .init(
@@ -49,8 +50,9 @@ class GameCoreTests: XCTestCase {
         secondaryButton: .destructive(.init("Yes, forfeit"), action: .send(.forfeitButtonTapped))
       )
     }
+    .finish()
 
-    store.send(.alert(.forfeitButtonTapped)) {
+    await store.send(.alert(.forfeitButtonTapped)) {
       $0.alert = nil
       $0.gameOver = .init(
         completedGame: .init(gameState: gameState),
@@ -58,6 +60,7 @@ class GameCoreTests: XCTestCase {
         turnBasedContext: gameState.turnBasedContext
       )
     }
+    .finish()
 
     XCTAssertNoDifference(didEndMatchInTurn, true)
   }

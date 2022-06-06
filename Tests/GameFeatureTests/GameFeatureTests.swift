@@ -67,7 +67,7 @@ class GameFeatureTests: XCTestCase {
     }
   }
 
-  func testDoubleTapRemoveCube_MultipleSelectedFaces() {
+  func testDoubleTapRemoveCube_MultipleSelectedFaces() async {
     let environment = update(GameEnvironment.failing) {
       $0.fileClient.load = { _ in .none }
       $0.gameCenter.localPlayer.localPlayer = { .authenticated }
@@ -95,7 +95,7 @@ class GameFeatureTests: XCTestCase {
       environment: environment
     )
 
-    store.send(.game(.doubleTap(index: .zero)))
+    await store.send(.game(.doubleTap(index: .zero))).finish()
   }
 
   func testIsYourTurn() {
