@@ -37,7 +37,7 @@ class GameCoreTests: XCTestCase {
       environment: environment
     )
 
-    await store.send(.forfeitGameButtonTapped) {
+    store.send(.forfeitGameButtonTapped) {
       $0.alert = .init(
         title: .init("Are you sure?"),
         message: .init(
@@ -50,7 +50,6 @@ class GameCoreTests: XCTestCase {
         secondaryButton: .destructive(.init("Yes, forfeit"), action: .send(.forfeitButtonTapped))
       )
     }
-    .finish()
 
     await store.send(.alert(.forfeitButtonTapped)) {
       $0.alert = nil
