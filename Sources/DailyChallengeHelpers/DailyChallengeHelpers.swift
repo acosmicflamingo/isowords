@@ -15,24 +15,22 @@ public func startDailyChallenge(
   _ challenge: FetchTodaysDailyChallengeResponse,
   apiClient: ApiClient,
   date: @escaping () -> Date,
-  fileClient: FileClient,
-  mainRunLoop: AnySchedulerOf<RunLoop>
-) -> Effect<InProgressGame, DailyChallengeError> {
+  fileClient: FileClient
+) async throws -> InProgressGame {
   guard challenge.yourResult.rank == nil else {
-    return Effect(error: .alreadyPlayed(endsAt: challenge.dailyChallenge.endsAt))
+    throw DailyChallengeError.alreadyPlayed(endsAt: challenge.dailyChallenge.endsAt)
   }
 
-  return Effect.concatenate(
-    challenge.dailyChallenge.gameMode == .unlimited
-      ? fileClient
-        .loadSavedGames()
-        .tryMap { try $0.get() }
-        .ignoreFailure(setFailureType: DailyChallengeError.self)
-        .compactMap(\.dailyChallengeUnlimited)
-        .eraseToEffect()
-      : .none,
-    apiClient
-      .apiRequest(
+  if
+    challenge.dailyChallenge.gameMode == .unlimited,
+    let inProgressGame = try? await fileClient.loadSavedGames().dailyChallengeUnlimited
+  {
+    return inProgressGame
+  }
+
+  do {
+    return try await InProgressGame(
+      response: apiClient.apiRequest(
         route: .dailyChallenge(
           .start(
             gameMode: challenge.dailyChallenge.gameMode,
@@ -40,14 +38,12 @@ public func startDailyChallenge(
           )
         ),
         as: StartDailyChallengeResponse.self
-      )
-      .map { InProgressGame(response: $0, date: date()) }
-      .mapError { err in .couldNotFetch(nextStartsAt: challenge.dailyChallenge.endsAt) }
-      .eraseToEffect()
-  )
-  .prefix(1)
-  .receive(on: mainRunLoop)
-  .eraseToEffect()
+      ),
+      date: date()
+    )
+  } catch {
+    throw DailyChallengeError.couldNotFetch(nextStartsAt: challenge.dailyChallenge.endsAt)
+  }
 }
 
 extension InProgressGame {

@@ -85,7 +85,7 @@ public enum GameOverAction: Equatable {
   case notificationsAuthAlert(NotificationsAuthAlertAction)
   case rematchButtonTapped
   case showConfetti
-  case startDailyChallengeResponse(Result<InProgressGame, DailyChallengeError>)
+  case startDailyChallengeResponse(TaskResult<InProgressGame>)
   case submitGameResponse(Result<SubmitGameResponse, ApiError>)
   case upgradeInterstitial(UpgradeInterstitialAction)
   case userNotificationSettingsResponse(UserNotificationClient.Notification.Settings)
@@ -229,19 +229,17 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
         let challenge = state.dailyChallenges
           .first(where: { $0.dailyChallenge.gameMode == gameMode })
         state.gameModeIsLoading = challenge?.dailyChallenge.gameMode
-        return
-          challenge
-          .map {
-            startDailyChallenge(
-              $0,
+        guard let challenge = challenge else { return .none }
+        return .task {
+          await .startDailyChallengeResponse(.init {
+            try await startDailyChallenge(
+              challenge,
               apiClient: environment.apiClient,
               date: { environment.mainRunLoop.now.date },
-              fileClient: environment.fileClient,
-              mainRunLoop: environment.mainRunLoop
+              fileClient: environment.fileClient
             )
-            .catchToEffect(GameOverAction.startDailyChallengeResponse)
-          }
-          ?? .none
+          })
+        }
       case .shared:
         return .none
       case .solo:

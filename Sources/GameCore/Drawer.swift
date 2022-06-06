@@ -8,11 +8,12 @@ extension Reducer where State == GameState, Action == GameAction, Environment ==
         .receive(on: environment.mainQueue.animation())
         .mapError { $0 as NSError }
         .catchToEffect(GameAction.matchesLoaded),
-      environment.fileClient.loadSavedGames()
-        .subscribe(on: environment.backgroundQueue)
-        .receive(on: environment.mainQueue.animation())
-        .eraseToEffect()
-        .map(GameAction.savedGamesLoaded)
+      .task {
+        await .savedGamesLoaded(.init {
+          try await environment.fileClient.loadSavedGames()
+        })
+      }
+      .animation()
     )
 
     switch action {

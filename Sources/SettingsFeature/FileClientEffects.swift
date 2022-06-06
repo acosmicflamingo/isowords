@@ -2,8 +2,8 @@ import ComposableArchitecture
 import FileClient
 
 extension FileClient {
-  public func loadUserSettings() -> Effect<Result<UserSettings, NSError>, Never> {
-    self.load(UserSettings.self, from: userSettingsFileName)
+  public func loadUserSettings() async throws -> UserSettings {
+    try await self.load(UserSettings.self, from: userSettingsFileName)
   }
 
   public func saveUserSettings(

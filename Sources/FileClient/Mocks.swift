@@ -6,14 +6,17 @@ import XCTestDynamicOverlay
 extension FileClient {
   public static let noop = Self(
     delete: { _ in .none },
-    load: { _ in .none },
+    load: { _ in .init() },
     save: { _, _ in .none }
   )
 
   #if DEBUG
     public static let failing = Self(
       delete: { .failing("\(Self.self).delete(\($0)) is unimplemented") },
-      load: { .failing("\(Self.self).load(\($0)) is unimplemented") },
+      load: {
+        XCTFail("\(Self.self).load(\($0)) is unimplemented")
+        return .init()
+      },
       save: { file, _ in .failing("\(Self.self).save(\(file)) is unimplemented") }
     )
   #endif
@@ -26,9 +29,9 @@ extension FileClient {
     self.load = { [self] in
       if $0 == file {
         fulfill()
-        return data.tryMap { try JSONEncoder().encode($0) }.eraseToEffect()
+        return try JSONEncoder().encode($0)
       } else {
-        return self.load($0)
+        return try await self.load($0)
       }
     }
   }

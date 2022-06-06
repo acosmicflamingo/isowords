@@ -59,7 +59,7 @@ class DailyChallengeFeatureTests: XCTestCase {
     }
   }
 
-  func testTapGameThatWasNotStarted() {
+  func testTapGameThatWasNotStarted() async {
     var inProgressGame = InProgressGame.mock
     inProgressGame.gameStartTime = self.mainRunLoop.now.date
     inProgressGame.gameContext = .dailyChallenge(.init(rawValue: .dailyChallengeId))
@@ -84,7 +84,7 @@ class DailyChallengeFeatureTests: XCTestCase {
       )
     )
     struct FileNotFound: Error {}
-    environment.fileClient.load = { _ in .init(error: FileNotFound()) }
+    environment.fileClient.load = { _ in throw FileNotFound() }
 
     let store = TestStore(
       initialState: DailyChallengeState(dailyChallenges: [.notStarted]),
@@ -96,14 +96,14 @@ class DailyChallengeFeatureTests: XCTestCase {
       $0.gameModeIsLoading = .unlimited
     }
 
-    self.mainRunLoop.advance()
-    store.receive(.startDailyChallengeResponse(.success(inProgressGame))) {
+    await self.mainRunLoop.advance()
+    await store.receive(.startDailyChallengeResponse(.success(inProgressGame))) {
       $0.gameModeIsLoading = nil
     }
-    store.receive(.delegate(.startGame(inProgressGame)))
+    await store.receive(.delegate(.startGame(inProgressGame)))
   }
 
-  func testTapGameThatWasStarted_NotPlayed_HasLocalGame() {
+  func testTapGameThatWasStarted_NotPlayed_HasLocalGame() async {
     var inProgressGame = InProgressGame.mock
     inProgressGame.gameStartTime = .mock
     inProgressGame.gameContext = .dailyChallenge(.init(rawValue: .dailyChallengeId))
@@ -113,10 +113,8 @@ class DailyChallengeFeatureTests: XCTestCase {
 
     var environment = DailyChallengeEnvironment.failing
     environment.fileClient.load = { asdf in
-      .init(
-        value: try! JSONEncoder().encode(
-          SavedGamesState.init(dailyChallengeUnlimited: inProgressGame)
-        )
+      try! JSONEncoder().encode(
+        SavedGamesState.init(dailyChallengeUnlimited: inProgressGame)
       )
     }
     environment.mainRunLoop = .immediate
@@ -134,10 +132,10 @@ class DailyChallengeFeatureTests: XCTestCase {
       $0.gameModeIsLoading = .unlimited
     }
 
-    store.receive(.startDailyChallengeResponse(.success(inProgressGame))) {
+    await store.receive(.startDailyChallengeResponse(.success(inProgressGame))) {
       $0.gameModeIsLoading = nil
     }
-    store.receive(.delegate(.startGame(inProgressGame)))
+    await store.receive(.delegate(.startGame(inProgressGame)))
   }
 
   func testNotifications_OpenThenClose() {

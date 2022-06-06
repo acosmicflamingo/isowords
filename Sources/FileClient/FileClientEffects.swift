@@ -3,8 +3,8 @@ import Combine
 import ComposableArchitecture
 
 extension FileClient {
-  public func loadSavedGames() -> Effect<Result<SavedGamesState, NSError>, Never> {
-    self.load(SavedGamesState.self, from: savedGamesFileName)
+  public func loadSavedGames() async throws -> SavedGamesState {
+    try await self.load(SavedGamesState.self, from: savedGamesFileName)
   }
 
   public func saveGames(

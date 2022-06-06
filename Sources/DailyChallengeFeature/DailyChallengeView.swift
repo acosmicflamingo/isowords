@@ -66,7 +66,7 @@ public enum DailyChallengeAction: Equatable {
   case notificationButtonTapped
   case notificationsAuthAlert(NotificationsAuthAlertAction)
   case setNavigation(tag: DailyChallengeState.Route.Tag?)
-  case startDailyChallengeResponse(Result<InProgressGame, DailyChallengeError>)
+  case startDailyChallengeResponse(TaskResult<InProgressGame>)
   case userNotificationSettingsResponse(UserNotificationClient.Notification.Settings)
 
   public enum DelegateAction: Equatable {
@@ -164,14 +164,16 @@ public let dailyChallengeReducer = Reducer<
 
       state.gameModeIsLoading = challenge.dailyChallenge.gameMode
 
-      return startDailyChallenge(
-        challenge,
-        apiClient: environment.apiClient,
-        date: { environment.mainRunLoop.now.date },
-        fileClient: environment.fileClient,
-        mainRunLoop: environment.mainRunLoop
-      )
-      .catchToEffect(DailyChallengeAction.startDailyChallengeResponse)
+      return .task {
+        await .startDailyChallengeResponse(.init {
+          try await startDailyChallenge(
+            challenge,
+            apiClient: environment.apiClient,
+            date: { environment.mainRunLoop.now.date },
+            fileClient: environment.fileClient
+          )
+        })
+      }
 
     case .onAppear:
       return .run { send in
@@ -224,14 +226,17 @@ public let dailyChallengeReducer = Reducer<
       state.route = nil
       return .none
 
-    case let .startDailyChallengeResponse(.failure(.alreadyPlayed(endsAt))):
+    case let .startDailyChallengeResponse(.failure(DailyChallengeError.alreadyPlayed(endsAt))):
       state.alert = .alreadyPlayed(nextStartsAt: endsAt)
       state.gameModeIsLoading = nil
       return .none
 
-    case let .startDailyChallengeResponse(.failure(.couldNotFetch(nextStartsAt))):
+    case let .startDailyChallengeResponse(.failure(DailyChallengeError.couldNotFetch(nextStartsAt))):
       state.alert = .couldNotFetchDaily(nextStartsAt: nextStartsAt)
       state.gameModeIsLoading = nil
+      return .none
+
+    case .startDailyChallengeResponse(.failure):
       return .none
 
     case let .startDailyChallengeResponse(.success(inProgressGame)):

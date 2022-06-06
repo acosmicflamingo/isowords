@@ -34,7 +34,7 @@ class DailyChallengeTests: XCTestCase {
         didSave = true
         return .none
       }
-      $0.fileClient.load = { _ in .none }
+      $0.fileClient.load = { _ in .init() }
       $0.gameCenter.localPlayer.localPlayer = { .authenticated }
       $0.mainQueue = .immediate
     }
@@ -89,7 +89,7 @@ class DailyChallengeTests: XCTestCase {
         didSave = true
         return .none
       }
-      $0.fileClient.load = { _ in .none }
+      $0.fileClient.load = { _ in .init() }
       $0.gameCenter.localPlayer.localPlayer = { .authenticated }
       $0.mainQueue = .immediate
     }

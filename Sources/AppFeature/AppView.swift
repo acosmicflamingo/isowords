@@ -73,7 +73,7 @@ public enum AppAction: Equatable {
   case home(HomeAction)
   case onboarding(OnboardingAction)
   case paymentTransaction(StoreKitClient.PaymentTransactionObserverEvent)
-  case savedGamesLoaded(Result<SavedGamesState, NSError>)
+  case savedGamesLoaded(TaskResult<SavedGamesState>)
   case verifyReceiptResponse(TaskResult<ReceiptFinalizationEnvelope>)
 }
 
@@ -223,7 +223,12 @@ let appReducerCore = Reducer<AppState, AppAction, AppEnvironment> { state, actio
 
     return .merge(
       environment.database.migrate.fireAndForget(),
-      environment.fileClient.loadSavedGames().map(AppAction.savedGamesLoaded),
+
+      .task {
+        return await .savedGamesLoaded(.init {
+          try await environment.fileClient.loadSavedGames()
+        })
+      },
 
       environment.userDefaults.installationTime <= 0
         ? environment.userDefaults.setInstallationTime(

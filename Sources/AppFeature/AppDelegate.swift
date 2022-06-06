@@ -17,7 +17,7 @@ public enum AppDelegateAction: Equatable {
   case didFinishLaunching
   case didRegisterForRemoteNotifications(Result<Data, NSError>)
   case userNotifications(UserNotificationClient.DelegateEvent)
-  case userSettingsLoaded(Result<UserSettings, NSError>)
+  case userSettingsLoaded(TaskResult<UserSettings>)
 }
 
 struct AppDelegateEnvironment {
@@ -83,12 +83,12 @@ let appDelegateReducer = Reducer<
         .subscribe(on: environment.backgroundQueue)
         .fireAndForget(),
 
-      .concatenate(
-        .fireAndForget { await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases) },
-
-        environment.fileClient.loadUserSettings()
-          .map(AppDelegateAction.userSettingsLoaded)
-      )
+      .task {
+        await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
+        return await .userSettingsLoaded(.init {
+          try await environment.fileClient.loadUserSettings()
+        })
+      }
     )
 
   case .didRegisterForRemoteNotifications(.failure):
@@ -120,7 +120,7 @@ let appDelegateReducer = Reducer<
     return .none
 
   case let .userSettingsLoaded(result):
-    state = (try? result.get()) ?? state
+    state = (try? result.value) ?? state
     return .merge(
       environment.audioPlayer.setGlobalVolumeForSoundEffects(
         state.soundEffectsVolume

@@ -165,7 +165,7 @@ public enum GameAction: Equatable {
   case menuButtonTapped
   case onAppear
   case pan(UIGestureRecognizer.State, PanData?)
-  case savedGamesLoaded(Result<SavedGamesState, NSError>)
+  case savedGamesLoaded(TaskResult<SavedGamesState>)
   case settingsButtonTapped
   case submitButtonTapped(reaction: Move.Reaction?)
   case tap(UIGestureRecognizer.State, IndexedCubeFace?)

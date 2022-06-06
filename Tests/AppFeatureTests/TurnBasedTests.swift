@@ -578,7 +578,7 @@ class TurnBasedTests: XCTestCase {
     let environment = update(AppEnvironment.failing) {
       $0.apiClient.currentPlayer = { nil }
       $0.dictionary.randomCubes = { _ in .mock }
-      $0.fileClient.load = { _ in .none }
+      $0.fileClient.load = { _ in .init() }
       $0.gameCenter.localPlayer.localPlayer = {
         update(.authenticated) { $0.player = localParticipant.player! }
       }

@@ -15,7 +15,9 @@ extension AppEnvironment {
     $0.dictionary.load = { _ in false }
     let fileClient = $0.fileClient
     $0.fileClient.load = {
-      [savedGamesFileName, userSettingsFileName].contains($0) ? .none : fileClient.load($0)
+      try await [savedGamesFileName, userSettingsFileName].contains($0)
+      ? .init()
+      : fileClient.load($0)
     }
     $0.fileClient.override(load: userSettingsFileName, Effect<UserSettings, Error>.none)
     $0.gameCenter.localPlayer.authenticate = .none

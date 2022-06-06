@@ -18,14 +18,12 @@ extension FileClient {
         }
       },
       load: { fileName in
-        .catching {
-          try Data(
-            contentsOf:
-              documentDirectory
-              .appendingPathComponent(fileName)
-              .appendingPathExtension("json")
-          )
-        }
+        try Data(
+          contentsOf:
+            documentDirectory
+            .appendingPathComponent(fileName)
+            .appendingPathExtension("json")
+        )
       },
       save: { fileName, data in
         .fireAndForget {
