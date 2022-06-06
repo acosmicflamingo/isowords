@@ -179,8 +179,9 @@ public let demoReducer = Reducer<DemoState, DemoAction, DemoEnvironment>.combine
       return .none
 
     case .onAppear:
-      return environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
-        .fireAndForget()
+      return .fireAndForget {
+        await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
+      }
 
     case .onboarding(.delegate(.getStarted)):
       state.step = .game(

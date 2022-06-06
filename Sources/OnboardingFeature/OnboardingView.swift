@@ -329,8 +329,7 @@ public let onboardingReducer = Reducer<
     }
 
     return .merge(
-      environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
-        .fireAndForget(),
+      .fireAndForget { await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases) },
 
       Effect
         .catching { try environment.dictionary.load(.en) }

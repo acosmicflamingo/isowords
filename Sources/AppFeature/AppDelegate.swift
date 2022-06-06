@@ -84,8 +84,7 @@ let appDelegateReducer = Reducer<
         .fireAndForget(),
 
       .concatenate(
-        environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
-          .fireAndForget(),
+        .fireAndForget { await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases) },
 
         environment.fileClient.loadUserSettings()
           .map(AppDelegateAction.userSettingsLoaded)

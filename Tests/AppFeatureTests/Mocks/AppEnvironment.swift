@@ -9,7 +9,7 @@ import UserDefaultsClient
 
 extension AppEnvironment {
   static let didFinishLaunching = update(failing) {
-    $0.audioPlayer.load = { _ in .none }
+    $0.audioPlayer.load = { _ in }
     $0.backgroundQueue = .immediate
     $0.database.migrate = .none
     $0.dictionary.load = { _ in false }

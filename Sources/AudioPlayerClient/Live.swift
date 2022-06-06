@@ -4,22 +4,20 @@ extension AudioPlayerClient {
   public static func live(bundles: [Bundle]) -> Self {
     Self(
       load: { sounds in
-        .fireAndForget {
-          queue.async {
-            let soundsToLoad = sounds.filter { !files.keys.contains($0) }
+        queue.async {
+          let soundsToLoad = sounds.filter { !files.keys.contains($0) }
 
-            try? AVAudioSession.sharedInstance().setCategory(.ambient)
-            try? AVAudioSession.sharedInstance().setActive(true, options: [])
-            for sound in soundsToLoad {
-              for bundle in bundles {
-                guard let url = bundle.url(forResource: sound.name, withExtension: "mp3")
-                else { continue }
-                files[sound] = AudioPlayer(category: sound.category, url: url)
-              }
+          try? AVAudioSession.sharedInstance().setCategory(.ambient)
+          try? AVAudioSession.sharedInstance().setActive(true, options: [])
+          for sound in soundsToLoad {
+            for bundle in bundles {
+              guard let url = bundle.url(forResource: sound.name, withExtension: "mp3")
+              else { continue }
+              files[sound] = AudioPlayer(category: sound.category, url: url)
             }
-            guard !files.isEmpty else { return }
-            try? audioEngine.start()
           }
+          guard !files.isEmpty else { return }
+          try? audioEngine.start()
         }
       },
       loop: { sound in
