@@ -324,8 +324,8 @@ public let gameOverReducer = Reducer<GameOverState, GameOverAction, GameOverEnvi
               let settings = await environment.userNotifications.getNotificationSettings()
               await send(.userNotificationSettingsResponse(settings))
             }
-            group.addTask { await environment.audioPlayer.loop(.gameOverMusicLoop) }
-            group.addTask { await environment.audioPlayer.play(.transitionIn) }
+            group.addTask { try await environment.audioPlayer.loop(.gameOverMusicLoop) }
+            group.addTask { try await environment.audioPlayer.play(.transitionIn) }
           }
         }
       )

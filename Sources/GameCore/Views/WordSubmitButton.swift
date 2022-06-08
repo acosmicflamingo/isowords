@@ -74,13 +74,13 @@ let wordSubmitReducer = Reducer<
   switch action {
   case .backgroundTapped:
     state.wordSubmitButton.areReactionsOpen = false
-    return .fireAndForget { await environment.audioPlayer.play(.uiSfxEmojiClose) }
+    return .fireAndForget { try await environment.audioPlayer.play(.uiSfxEmojiClose) }
 
   case .delayedSubmitButtonPressed:
     state.wordSubmitButton.areReactionsOpen = true
     return .fireAndForget {
       await environment.feedbackGenerator.selectionChanged()
-      await environment.audioPlayer.play(.uiSfxEmojiOpen)
+      try await environment.audioPlayer.play(.uiSfxEmojiOpen)
     }
 
   case .delegate:
@@ -90,7 +90,7 @@ let wordSubmitReducer = Reducer<
     state.wordSubmitButton.areReactionsOpen = false
     return .run { send in
       await environment.feedbackGenerator.selectionChanged()
-      await environment.audioPlayer.play(.uiSfxEmojiSend)
+      try? await environment.audioPlayer.play(.uiSfxEmojiSend)
       await send(.delegate(.confirmSubmit(reaction: reaction)))
     }
 
@@ -101,7 +101,7 @@ let wordSubmitReducer = Reducer<
     let closeSound: Effect<Never, Never>
     if state.wordSubmitButton.areReactionsOpen {
       state.wordSubmitButton.isClosing = true
-      closeSound = .fireAndForget { await environment.audioPlayer.play(.uiSfxEmojiClose) }
+      closeSound = .fireAndForget { try await environment.audioPlayer.play(.uiSfxEmojiClose) }
     } else {
       closeSound = .none
     }

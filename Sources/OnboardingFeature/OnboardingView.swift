@@ -229,7 +229,7 @@ public let onboardingReducer = Reducer<
     state.alert = nil
     return .run { send in
       await send(.alert(.confirmSkipButtonTapped), animation: .default)
-      await environment.audioPlayer.play(.uiSfxTap)
+      try? await environment.audioPlayer.play(.uiSfxTap)
     }
 
   case .delayedNextStep:
@@ -242,7 +242,7 @@ public let onboardingReducer = Reducer<
         .setHasShownFirstLaunchOnboarding(true)
         .fireAndForget(),
 
-      .fireAndForget { await environment.audioPlayer.stop(.onboardingBgMusic) },
+      .fireAndForget { try await environment.audioPlayer.stop(.onboardingBgMusic) },
 
       .cancel(id: DelayedNextStepId())
     )
@@ -328,7 +328,7 @@ public let onboardingReducer = Reducer<
     }
 
     return .merge(
-      .fireAndForget { await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases) },
+      .fireAndForget { try await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases) },
 
       Effect
         .catching { try environment.dictionary.load(.en) }
@@ -344,7 +344,7 @@ public let onboardingReducer = Reducer<
         : .none,
 
       .fireAndForget { [presentationStyle = state.presentationStyle] in
-        await environment.audioPlayer.play(
+        try await environment.audioPlayer.play(
           presentationStyle == .demo ? .timedGameBgLoop1 : .onboardingBgMusic
         )
       }
@@ -352,13 +352,13 @@ public let onboardingReducer = Reducer<
 
   case .nextButtonTapped:
     state.step.next()
-    return .fireAndForget { await environment.audioPlayer.play(.uiSfxTap) }
+    return .fireAndForget { try await environment.audioPlayer.play(.uiSfxTap) }
 
   case .skipButtonTapped:
     guard !environment.userDefaults.hasShownFirstLaunchOnboarding else {
       return .run { send in
         await send(.delegate(.getStarted), animation: .default)
-        await environment.audioPlayer.play(.uiSfxTap)
+        try? await environment.audioPlayer.play(.uiSfxTap)
       }
     }
     state.alert = .init(
@@ -374,7 +374,7 @@ public let onboardingReducer = Reducer<
       ),
       secondaryButton: .default(.init("No, resume"), action: .send(.resumeButtonTapped))
     )
-    return .fireAndForget { await environment.audioPlayer.play(.uiSfxTap) }
+    return .fireAndForget { try await environment.audioPlayer.play(.uiSfxTap) }
   }
 }
 .onChange(of: \.game.selectedWordString) { selectedWord, state, _, _ in

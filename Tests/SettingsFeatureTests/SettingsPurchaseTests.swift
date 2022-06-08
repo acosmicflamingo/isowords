@@ -25,7 +25,6 @@ class SettingsPurchaseTests: XCTestCase {
   }
 
   func testUpgrade_HappyPath() async throws {
-    var didAddPaymentProductIdentifier: String? = nil
     let storeKitObserver = PassthroughSubject<
       StoreKitClient.PaymentTransactionObserverEvent, Never
     >()
@@ -36,10 +35,10 @@ class SettingsPurchaseTests: XCTestCase {
     }
     environment.apiClient.currentPlayer = { .some(.blobWithoutPurchase) }
     environment.apiClient.refreshCurrentPlayer = { .init(value: .blobWithPurchase) }
-    environment.storeKit.addPayment = { payment in
-      .fireAndForget {
-        didAddPaymentProductIdentifier = payment.productIdentifier
-      }
+    var addedPaymentProductIdentifier: String?
+    environment.storeKit.addPayment = {
+      addedPaymentProductIdentifier = $0.productIdentifier
+      return .none
     }
     environment.storeKit.fetchProducts = { _ in
       .init(value: .init(invalidProductIdentifiers: [], products: [.fullGame]))
@@ -67,10 +66,11 @@ class SettingsPurchaseTests: XCTestCase {
       $0.userNotificationSettings = .init(authorizationStatus: .notDetermined)
     }
 
-    store.send(.tappedProduct(.fullGame)) {
+    await store.send(.tappedProduct(.fullGame)) {
       $0.isPurchasing = true
     }
-    XCTAssertNoDifference(didAddPaymentProductIdentifier, "xyz.isowords.full_game")
+    .finish()
+    XCTAssertNoDifference(addedPaymentProductIdentifier, "xyz.isowords.full_game")
     storeKitObserver.send(.updatedTransactions([.purchasing]))
     storeKitObserver.send(.updatedTransactions([.purchased]))
     storeKitObserver.send(.removedTransactions([.purchased]))

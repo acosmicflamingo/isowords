@@ -156,11 +156,13 @@ public let upgradeInterstitialReducer = Reducer<
   case .upgradeButtonTapped:
     state.isPurchasing = true
 
-    let payment = SKMutablePayment()
-    payment.productIdentifier = environment.serverConfig.config().productIdentifiers.fullGame
-    payment.quantity = 1
-    return environment.storeKit.addPayment(payment)
-      .fireAndForget()
+    return .fireAndForget {
+      let payment = SKMutablePayment()
+      payment.productIdentifier = environment.serverConfig.config().productIdentifiers.fullGame
+      payment.quantity = 1
+
+      await environment.storeKit.addPayment(payment)
+    }
   }
 }
 

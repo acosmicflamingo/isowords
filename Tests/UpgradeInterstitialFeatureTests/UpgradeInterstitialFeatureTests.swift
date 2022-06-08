@@ -9,12 +9,11 @@ import XCTest
 
 @testable import ServerConfigClient
 
+@MainActor
 class UpgradeInterstitialFeatureTests: XCTestCase {
   let scheduler = RunLoop.test
 
-  func testUpgrade() {
-    var paymentAdded: SKPayment?
-
+  func testUpgrade() async {
     let observer = PassthroughSubject<StoreKitClient.PaymentTransactionObserverEvent, Never>()
 
     let transactions = [
@@ -38,8 +37,9 @@ class UpgradeInterstitialFeatureTests: XCTestCase {
     var environment = UpgradeInterstitialEnvironment.failing
     environment.mainRunLoop = .immediate
     environment.serverConfig.config = { .init() }
-    environment.storeKit.addPayment = { payment in
-      paymentAdded = payment
+    var paymentAdded: SKPayment?
+    environment.storeKit.addPayment = {
+      paymentAdded = $0
       return .none
     }
     environment.storeKit.observer = observer.eraseToEffect()
@@ -60,11 +60,11 @@ class UpgradeInterstitialFeatureTests: XCTestCase {
 
     store.send(.onAppear)
 
-    store.receive(.fullGameProductResponse(fullGameProduct)) {
+    await store.receive(.fullGameProductResponse(fullGameProduct)) {
       $0.fullGameProduct = fullGameProduct
     }
 
-    store.receive(.timerTick) {
+    await store.receive(.timerTick) {
       $0.secondsPassedCount = 1
     }
     store.send(.upgradeButtonTapped) {
@@ -74,8 +74,8 @@ class UpgradeInterstitialFeatureTests: XCTestCase {
     observer.send(.updatedTransactions(transactions))
     XCTAssertNoDifference(paymentAdded?.productIdentifier, "co.pointfree.isowords_testing.full_game")
 
-    store.receive(.paymentTransaction(.updatedTransactions(transactions)))
-    store.receive(.delegate(.fullGamePurchased))
+    await store.receive(.paymentTransaction(.updatedTransactions(transactions)))
+    await store.receive(.delegate(.fullGamePurchased))
   }
 
   func testWaitAndDismiss() {

@@ -180,7 +180,7 @@ public let demoReducer = Reducer<DemoState, DemoAction, DemoEnvironment>.combine
 
     case .onAppear:
       return .fireAndForget {
-        await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
+        try await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
       }
 
     case .onboarding(.delegate(.getStarted)):

@@ -1,12 +1,12 @@
 public struct AudioPlayerClient {
-  public var load: @Sendable ([Sound]) async -> Void
-  public var loop: @Sendable (Sound) async -> Void
-  public var play: @Sendable (Sound) async -> Void
-  public var secondaryAudioShouldBeSilencedHint: () -> Bool
+  public var load: @Sendable ([Sound]) async throws -> Void
+  public var loop: @Sendable (Sound) async throws -> Void
+  public var play: @Sendable (Sound) async throws -> Void
+  public var secondaryAudioShouldBeSilencedHint: @Sendable () -> Bool
   public var setGlobalVolumeForMusic: @Sendable (Float) async -> Void
   public var setGlobalVolumeForSoundEffects: @Sendable (Float) async -> Void
-  public var setVolume: @Sendable (Sound, Float) async -> Void
-  public var stop: @Sendable (Sound) async -> Void
+  public var setVolume: @Sendable (Sound, Float) async throws -> Void
+  public var stop: @Sendable (Sound) async throws -> Void
 
   public struct Sound: Hashable {
     public let category: Category
@@ -27,7 +27,7 @@ public struct AudioPlayerClient {
     var client = self
     client.play = { sound in
       guard doNotIncludeSounds.contains(sound)
-      else { return await self.play(sound) }
+      else { return try await self.play(sound) }
     }
     return client
   }

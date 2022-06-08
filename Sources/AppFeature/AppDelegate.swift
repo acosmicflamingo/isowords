@@ -84,7 +84,7 @@ let appDelegateReducer = Reducer<
         .fireAndForget(),
 
       .task {
-        await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
+        try? await environment.audioPlayer.load(AudioPlayerClient.Sound.allCases)
         return await .userSettingsLoaded(.init {
           try await environment.fileClient.loadUserSettings()
         })

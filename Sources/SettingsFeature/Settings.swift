@@ -565,11 +565,13 @@ public let settingsReducer = Reducer<SettingsState, SettingsAction, SettingsEnvi
 
     case let .tappedProduct(product):
       state.isPurchasing = true
-      let payment = SKMutablePayment()
-      payment.productIdentifier = product.productIdentifier
-      payment.quantity = 1
-      return environment.storeKit.addPayment(payment)
-        .fireAndForget()
+      return .fireAndForget {
+        let payment = SKMutablePayment()
+        payment.productIdentifier = product.productIdentifier
+        payment.quantity = 1
+
+        _ = environment.storeKit.addPayment(payment).sink { _ in }
+      }
 
     case let .userNotificationAuthorizationResponse(.success(granted)):
       state.enableNotifications = granted

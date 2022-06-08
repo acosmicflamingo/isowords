@@ -22,7 +22,7 @@ extension Reducer {
         ) {
           effects.append(
             .fireAndForget {
-              await audioPlayer(environment).play(AudioPlayerClient.Sound.allNotes[noteIndex])
+              try await audioPlayer(environment).play(AudioPlayerClient.Sound.allNotes[noteIndex])
             }
           )
         }
@@ -44,7 +44,7 @@ extension Reducer {
           effects.append(
             .fireAndForget {
               guard validCount > 0 else { return }
-              await audioPlayer(environment).play(.validWord(level: validCount))
+              try await audioPlayer(environment).play(.validWord(level: validCount))
             }
           )
         }

@@ -714,7 +714,7 @@ extension GameState {
             .fireAndForget {
               try await environment.mainQueue
                 .sleep(for: .milliseconds(removeCubeDelay(index: index)))
-              await environment.audioPlayer.play(.cubeRemove)
+              try await environment.audioPlayer.play(.cubeRemove)
             }
           }
       )
@@ -1008,10 +1008,10 @@ extension Effect where Output == Never, Failure == Never {
     .merge(
       .cancel(ids: [InterstitialId.self, ListenerId.self, LowPowerModeId.self, TimerId.self]),
       .fireAndForget {
-        await withTaskGroup(of: Void.self) { group in
+        await withThrowingTaskGroup(of: Void.self) { group in
           for sound in AudioPlayerClient.Sound.allMusic {
             group.addTask {
-              await audioPlayer.stop(sound)
+              try await audioPlayer.stop(sound)
             }
           }
         }
