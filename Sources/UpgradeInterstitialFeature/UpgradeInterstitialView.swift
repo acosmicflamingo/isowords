@@ -161,7 +161,7 @@ public let upgradeInterstitialReducer = Reducer<
       payment.productIdentifier = environment.serverConfig.config().productIdentifiers.fullGame
       payment.quantity = 1
 
-      await environment.storeKit.addPayment(payment)
+      _ = environment.storeKit.addPayment(payment).sink { _ in }
     }
   }
 }
